@@ -6,12 +6,12 @@ import os
 from urllib.parse import urlparse
 
 from fastapi import FastAPI
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from starlette.requests import Request
-from fastapi.exceptions import RequestValidationError
 
 from salesforce_scanner.engine import ScanOptions, run_scan
 from salesforce_scanner.fetcher import normalize_url
@@ -21,8 +21,9 @@ class ScanRequest(BaseModel):
     url: str = Field(..., min_length=3, max_length=2048)
 
 
-app = FastAPI(title="VerificaSalesforce API", version="1.0.0")
+app = FastAPI(title="VerificaSalesforce API", version="1.1.0")
 scan_lock = asyncio.Lock()
+SCAN_RETRY_AFTER_SECONDS = max(1, int(os.getenv("SCAN_RETRY_AFTER_SECONDS", "8")))
 
 
 def _parse_cors_origins() -> list[str]:
@@ -46,11 +47,12 @@ def _error_response(
     error: str,
     message: str,
     details: dict | list | str | None = None,
+    headers: dict[str, str] | None = None,
 ) -> JSONResponse:
     payload: dict[str, object] = {"error": error, "message": message}
     if details is not None:
         payload["details"] = details
-    return JSONResponse(status_code=status_code, content=payload)
+    return JSONResponse(status_code=status_code, content=payload, headers=headers)
 
 
 @app.exception_handler(RequestValidationError)
@@ -83,6 +85,15 @@ async def health() -> dict[str, str]:
     return {"status": "ok"}
 
 
+@app.get("/scan/status")
+async def scan_status() -> dict[str, object]:
+    return {
+        "status": "ok",
+        "scan_in_progress": scan_lock.locked(),
+        "retry_after_seconds": SCAN_RETRY_AFTER_SECONDS,
+    }
+
+
 @app.post("/scan", response_model=None)
 async def scan(payload: ScanRequest):
     if scan_lock.locked():
@@ -90,6 +101,8 @@ async def scan(payload: ScanRequest):
             429,
             "scan_in_progress",
             "Já existe uma análise em andamento. Tente novamente em instantes.",
+            details={"retry_after_seconds": SCAN_RETRY_AFTER_SECONDS},
+            headers={"Retry-After": str(SCAN_RETRY_AFTER_SECONDS)},
         )
 
     try:

@@ -67,6 +67,28 @@ Resposta (exemplo):
 }
 ```
 
+### `GET /scan/status`
+
+Retorna se já existe uma análise em andamento (útil para UX no frontend):
+
+```json
+{
+  "status": "ok",
+  "scan_in_progress": false,
+  "retry_after_seconds": 8
+}
+```
+
+### Resposta `429` de concorrência
+
+A API processa **uma análise por vez**.
+Se outra requisição chegar enquanto uma análise está rodando, retorna `429` com:
+
+- header `Retry-After`
+- body `details.retry_after_seconds`
+
+Isso permite mostrar no site: `Já existe uma análise em andamento. Tentando novamente em Xs...`.
+
 ## Testando agora no Railway
 
 1. Copie a URL pública do seu serviço no Railway (ex.: `https://verificasalesforce-production.up.railway.app`).
@@ -124,6 +146,12 @@ Para produção com domínio específico, configure a variável:
 CORS_ALLOW_ORIGINS=https://averon.cloud,https://www.averon.cloud
 ```
 
+Também é possível ajustar o tempo de espera sugerido para fila:
+
+```bash
+SCAN_RETRY_AFTER_SECONDS=8
+```
+
 ## Deploy no Railway
 
 - Start command:
@@ -136,7 +164,7 @@ uvicorn main:app --host 0.0.0.0 --port $PORT
 
 ```bash
 pip install -r requirements.txt
-python -m playwright install chromium
+python -m playwright install --with-deps chromium
 ```
 
 ## Rodando localmente
@@ -145,7 +173,7 @@ python -m playwright install chromium
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
-python -m playwright install chromium
+python -m playwright install --with-deps chromium
 uvicorn main:app --host 0.0.0.0 --port 8000
 ```
 
