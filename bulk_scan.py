@@ -126,7 +126,7 @@ def run_single_scan(url: str, args: argparse.Namespace) -> dict[str, Any]:
         json_path = Path(tmp_dir) / "result.json"
         cmd = [
             sys.executable,
-            "main.py",
+            "scanner_cli.py",
             url,
             "--json-output",
             str(json_path),

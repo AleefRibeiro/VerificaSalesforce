@@ -44,6 +44,7 @@ def build_report(
         "salesforce_detected": bool(decision.get("salesforce_detected", False)),
         "rationale": decision.get("rationale", ""),
         "triggered_rules": decision.get("triggered_rules", []),
+        "products": inferred_products,
         "inferred_products": inferred_products,
         "score_details": {
             "total_score": score_details.get("total_score", 0),
