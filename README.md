@@ -26,10 +26,12 @@ O foco é **análise passiva e não invasiva**: somente conteúdo público carre
   - cookies visíveis
   - HTML renderizado
 - Detecção por padrões Salesforce (força bruta **não** é usada)
-- Score heurístico e classificação final:
+- Engine de decisão com score + regras determinísticas:
   - `Confirmado`
   - `Forte indício`
   - `Possível`
+  - `Possível (Marketing Cloud)` / `Possível (Commerce Cloud)`
+  - `Indício fraco / revisar manualmente`
   - `Nenhum sinal encontrado`
 - Relatório no terminal + exportação JSON
 
@@ -115,9 +117,21 @@ python main.py https://empresa.com.br --skip-playwright
 - `--playwright-timeout-ms`: timeout do Playwright em ms (padrão: `20000`)
 - `--skip-playwright`: desabilita renderização no navegador
 
-## Heurística de score
+## Engine de score e decisão
 
-Implementada de forma simples e ajustável em `salesforce_scanner/patterns.py`:
+O score é calculado por `pattern_key` + `source_type` com:
+
+- peso base por pattern
+- multiplicador por fonte (rede/redirect > script_url/iframe > script_content > html > cookie/robots/sitemap)
+- cap por pattern para evitar inflação
+
+Depois do score, há regras determinísticas para confirmação, por exemplo:
+
+- `service.force.com` em fonte forte de URL/rede
+- `embeddedservice` + domínio `force.com`/`salesforce*`
+- `liveagent` + domínio `force.com`/`salesforce*`
+
+Patterns principais (ajustáveis em `salesforce_scanner/patterns.py`):
 
 - `*.force.com`: +40
 - `service.force.com`: +50
@@ -130,17 +144,19 @@ Implementada de forma simples e ajustável em `salesforce_scanner/patterns.py`:
 - `exacttarget` / `mc.exacttarget`: +35
 - `marketingcloud` / `marketingcloudapps`: +30
 - `demandware` / `commerce cloud`: +30
-- `salesforce`: +15
+- `salesforce`: sinal fraco (não confirma sozinho)
 - `visualforce`: +25
 - `sales cloud` / `service cloud` / `health cloud`: +25
 - `experience cloud` / `siteforce`: +30
 
-Classificação:
+Classificação usa score + sinais fortes + confirmação cruzada + produtos inferidos:
 
-- `score >= 70`: Confirmado
-- `45 <= score <= 69`: Forte indício
-- `20 <= score <= 44`: Possível
-- `score < 20`: Nenhum sinal encontrado
+- `Confirmado`
+- `Forte indício`
+- `Possível`
+- `Possível (Marketing Cloud)` / `Possível (Commerce Cloud)`
+- `Indício fraco / revisar manualmente`
+- `Nenhum sinal encontrado`
 
 ## Exemplo de execução
 
@@ -204,3 +220,20 @@ Exemplo de estrutura do JSON gerado:
 - Adicionar/editar padrões e pesos: `salesforce_scanner/patterns.py`
 - Alterar regras de classificação: `salesforce_scanner/scorer.py`
 - Ajustar limites via CLI
+
+## Testes
+
+Rodar testes unitários:
+
+```bash
+python -m unittest discover -s tests -p "test_*.py" -v
+```
+
+Cobertura atual dos testes:
+
+- score por múltiplas fontes com cap por pattern
+- deduplicação por domínio para fontes de URL
+- confirmação determinística (`embeddedservice + force_domain`)
+- cenário apenas Marketing Cloud
+- cenário apenas sinal fraco
+- inferência de produto (Commerce Cloud)
