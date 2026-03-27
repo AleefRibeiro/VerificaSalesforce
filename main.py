@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import ipaddress
 import os
+import time
 from urllib.parse import urlparse
 
 from fastapi import FastAPI
@@ -22,7 +23,17 @@ class ScanRequest(BaseModel):
 
 
 app = FastAPI(title="VerificaSalesforce API", version="1.1.1")
-scan_lock = asyncio.Lock()
+
+# Per-URL locks — allows concurrent scans for different URLs while
+# preventing duplicate work for the exact same URL.
+_url_locks: dict[str, asyncio.Lock] = {}
+_url_locks_meta: dict[str, int] = {}  # tracks active waiters so we can GC idle locks
+_url_locks_guard = asyncio.Lock()
+
+# Simple in-memory result cache with TTL.
+_CACHE_TTL_SECONDS = int(os.getenv("SCAN_CACHE_TTL_SECONDS", "3600"))
+_result_cache: dict[str, tuple[float, dict]] = {}  # url -> (timestamp, report)
+
 SCAN_RETRY_AFTER_SECONDS = max(1, int(os.getenv("SCAN_RETRY_AFTER_SECONDS", "8")))
 
 
@@ -87,60 +98,117 @@ async def health() -> dict[str, str]:
 
 @app.get("/scan/status")
 async def scan_status() -> dict[str, object]:
+    async with _url_locks_guard:
+        active_urls = [url for url, lock in _url_locks.items() if lock.locked()]
+        concurrent_scans = len(active_urls)
+
+    now = time.monotonic()
+    cached_entries = sum(
+        1 for ts, _ in _result_cache.values() if now - ts < _CACHE_TTL_SECONDS
+    )
+
     return {
         "status": "ok",
-        "scan_in_progress": scan_lock.locked(),
+        "concurrent_scans": concurrent_scans,
+        "active_urls": active_urls,
+        "cached_results": cached_entries,
+        "cache_ttl_seconds": _CACHE_TTL_SECONDS,
         "retry_after_seconds": SCAN_RETRY_AFTER_SECONDS,
     }
 
 
+async def _get_url_lock(url: str) -> asyncio.Lock:
+    """Return (and lazily create) the per-URL lock, incrementing its waiter count."""
+    async with _url_locks_guard:
+        if url not in _url_locks:
+            _url_locks[url] = asyncio.Lock()
+            _url_locks_meta[url] = 0
+        _url_locks_meta[url] += 1
+        return _url_locks[url]
+
+
+async def _release_url_lock(url: str) -> None:
+    """Decrement waiter count and garbage-collect the lock when no longer needed."""
+    async with _url_locks_guard:
+        if url in _url_locks_meta:
+            _url_locks_meta[url] -= 1
+            if _url_locks_meta[url] <= 0:
+                _url_locks.pop(url, None)
+                _url_locks_meta.pop(url, None)
+
+
+def _cache_get(url: str) -> dict | None:
+    entry = _result_cache.get(url)
+    if entry is None:
+        return None
+    ts, report = entry
+    if time.monotonic() - ts > _CACHE_TTL_SECONDS:
+        _result_cache.pop(url, None)
+        return None
+    return report
+
+
+def _cache_set(url: str, report: dict) -> None:
+    _result_cache[url] = (time.monotonic(), report)
+
+
 @app.post("/scan", response_model=None)
 async def scan(payload: ScanRequest):
-    if scan_lock.locked():
-        return _error_response(
-            429,
-            "scan_in_progress",
-            "Já existe uma análise em andamento. Tente novamente em instantes.",
-            details={"retry_after_seconds": SCAN_RETRY_AFTER_SECONDS},
-            headers={"Retry-After": str(SCAN_RETRY_AFTER_SECONDS)},
-        )
-
     try:
         normalized_url = validate_target_url(payload.url)
     except ValueError as exc:
         return _error_response(400, "invalid_url", str(exc))
 
-    options = ScanOptions()
+    # Fast path: return cached result if still fresh.
+    cached = _cache_get(normalized_url)
+    if cached is not None:
+        return cached
 
+    url_lock = await _get_url_lock(normalized_url)
     try:
-        async with scan_lock:
-            report = await asyncio.to_thread(run_scan, normalized_url, options)
-    except TimeoutError:
-        return _error_response(504, "timeout", "A análise excedeu o tempo limite.")
-    except ValueError as exc:
-        return _error_response(400, "invalid_url", str(exc))
-    except Exception:
-        return _error_response(
-            500,
-            "scanner_error",
-            "Erro interno ao executar a análise.",
-        )
+        # If another coroutine is already scanning this URL, wait for it to
+        # finish and then serve the result from cache rather than scanning twice.
+        async with url_lock:
+            # Re-check cache after acquiring the lock — a concurrent request
+            # for the same URL may have just populated it.
+            cached = _cache_get(normalized_url)
+            if cached is not None:
+                return cached
 
-    access_error = _extract_access_error(report)
-    if access_error:
-        code, message = access_error
-        return _error_response(
-            code,
-            "target_unreachable",
-            message,
-            {
-                "input_url": report.get("input_url"),
-                "normalized_url": report.get("normalized_url"),
-                "errors": report.get("errors", []),
-            },
-        )
+            options = ScanOptions()
 
-    return report
+            try:
+                report = await asyncio.to_thread(run_scan, normalized_url, options)
+            except TimeoutError:
+                return _error_response(504, "timeout", "A análise excedeu o tempo limite.")
+            except ValueError as exc:
+                return _error_response(400, "invalid_url", str(exc))
+            except Exception:
+                return _error_response(
+                    500,
+                    "scanner_error",
+                    "Erro interno ao executar a análise.",
+                )
+
+            access_error = _extract_access_error(report)
+            if access_error:
+                code, message = access_error
+                return _error_response(
+                    code,
+                    "target_unreachable",
+                    message,
+                    {
+                        "input_url": report.get("input_url"),
+                        "normalized_url": report.get("normalized_url"),
+                        "errors": report.get("errors", []),
+                    },
+                )
+
+            # Cache successful results only.
+            _cache_set(normalized_url, report)
+            return report
+    finally:
+        await _release_url_lock(normalized_url)
 
 
 def validate_target_url(raw_url: str) -> str:

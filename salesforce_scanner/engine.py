@@ -1,12 +1,13 @@
 from __future__ import annotations
 
+import asyncio
 from dataclasses import dataclass
 
 from .analyzer import analyze_sources
 from .fetcher import (
     create_session,
-    discover_public_surface,
-    download_scripts,
+    discover_public_surface_async,
+    download_scripts_async,
     extract_page_assets,
     fetch_public_resources,
     fetch_text,
@@ -16,6 +17,18 @@ from .fetcher import (
 )
 from .report import build_report
 from .scorer import compute_score, decide_classification, infer_products
+
+# Pattern keys that, when found with sufficient confidence, allow the scan to
+# skip remaining discovery work and return early.
+_EARLY_EXIT_PATTERNS = frozenset(
+    {
+        "service_force_domain",
+        "embeddedservice",
+        "liveagent",
+        "force_domain",
+        "salesforce_scrt_domain",
+    }
+)
 
 
 @dataclass
@@ -30,11 +43,30 @@ class ScanOptions:
     discovery_max_depth: int = 1
     discovery_max_sitemaps: int = 10
     discovery_max_subdomains: int = 40
+    # Overall wall-clock timeout for the entire scan (seconds).  0 = no limit.
+    timeout: int = 30
 
 
 def run_scan(url: str, options: ScanOptions | None = None) -> dict:
-    opts = options or ScanOptions()
+    """Synchronous entry point — runs the async implementation in a new event loop.
 
+    Called via ``asyncio.to_thread()`` from the FastAPI layer so it never
+    blocks the main event loop.
+    """
+    opts = options or ScanOptions()
+    return asyncio.run(_async_scan(url, opts))
+
+
+async def async_run_scan(url: str, options: ScanOptions | None = None) -> dict:
+    """Async entry point for callers that already own an event loop."""
+    opts = options or ScanOptions()
+    if opts.timeout > 0:
+        return await asyncio.wait_for(_async_scan(url, opts), timeout=opts.timeout)
+    return await _async_scan(url, opts)
+
+
+async def _async_scan(url: str, opts: ScanOptions) -> dict:
+    """Core scan logic — fully async so I/O phases run concurrently."""
     normalized_url = normalize_url(url)
 
     checked_resources: list[str] = []
@@ -42,9 +74,22 @@ def run_scan(url: str, options: ScanOptions | None = None) -> dict:
 
     session = create_session()
 
-    initial_fetch = fetch_text(session, normalized_url, timeout=opts.http_timeout)
-    checked_resources.append("html_initial")
+    # ------------------------------------------------------------------ #
+    # Phase 1: initial HTML fetch + public resources (robots/sitemap)     #
+    # Run both concurrently.                                               #
+    # ------------------------------------------------------------------ #
+    initial_fetch_coro = asyncio.to_thread(
+        fetch_text, session, normalized_url, opts.http_timeout
+    )
+    public_resources_coro = asyncio.to_thread(
+        fetch_public_resources, session, normalized_url, opts.http_timeout
+    )
 
+    initial_fetch, (resource_results, resource_errors) = await asyncio.gather(
+        initial_fetch_coro, public_resources_coro
+    )
+
+    checked_resources.append("html_initial")
     if initial_fetch.error:
         errors.append(f"initial_fetch_failed: {initial_fetch.error}")
         base_url = normalized_url
@@ -55,19 +100,17 @@ def run_scan(url: str, options: ScanOptions | None = None) -> dict:
 
     initial_assets = extract_page_assets(html_initial, base_url)
 
-    resource_results, resource_errors = fetch_public_resources(
-        session,
-        reference_url=base_url,
-        timeout=opts.http_timeout,
-    )
     checked_resources.extend(["robots.txt", "sitemap.xml"])
     errors.extend(resource_errors)
 
     robots_txt = resource_results["robots.txt"].text if "robots.txt" in resource_results else ""
     sitemap_xml = resource_results["sitemap.xml"].text if "sitemap.xml" in resource_results else ""
 
+    # ------------------------------------------------------------------ #
+    # Phase 2: Playwright rendering (blocking — runs in thread pool)      #
+    # ------------------------------------------------------------------ #
     rendered_html = ""
-    rendered_assets = {
+    rendered_assets: dict[str, list[str]] = {
         "script_urls": [],
         "inline_scripts": [],
         "iframes": [],
@@ -79,10 +122,11 @@ def run_scan(url: str, options: ScanOptions | None = None) -> dict:
     playwright_final_url = base_url
 
     if not opts.skip_playwright:
-        pw_data = render_with_playwright(
+        pw_data = await asyncio.to_thread(
+            render_with_playwright,
             base_url,
-            timeout_ms=opts.playwright_timeout_ms,
-            max_requests=max(1, opts.max_requests),
+            opts.playwright_timeout_ms,
+            max(1, opts.max_requests),
         )
         checked_resources.extend(["html_rendered", "network_requests", "cookies"])
 
@@ -100,6 +144,37 @@ def run_scan(url: str, options: ScanOptions | None = None) -> dict:
         cookie_items = pw_data.get("cookies", [])
         cookies, _ = serialize_cookies_for_analysis(cookie_items)
 
+    # ------------------------------------------------------------------ #
+    # Early-exit check: if we already have strong Salesforce signals from #
+    # the initial HTML + network requests, skip the expensive discovery   #
+    # and script-download phases.                                         #
+    # ------------------------------------------------------------------ #
+    early_sources: dict[str, list[str] | str] = {
+        "html_initial": html_initial,
+        "html_rendered": rendered_html,
+        "script_url": initial_assets["script_urls"] + rendered_assets["script_urls"],
+        "iframe": initial_assets["iframes"] + rendered_assets["iframes"],
+        "link": initial_assets["links"] + rendered_assets["links"],
+        "network_request": network_requests,
+        "cookie": cookies,
+        "robots_txt": robots_txt,
+        "sitemap_xml": sitemap_xml,
+        "redirect_chain": redirect_chain,
+        "script_content": initial_assets["inline_scripts"] + rendered_assets["inline_scripts"],
+        "discovered_url": [],
+        "discovered_html": [],
+        "discovered_link": [],
+        "discovered_script_url": [],
+        "discovered_script_content": [],
+        "sitemap_url": [],
+        "subdomain_url": [],
+    }
+    early_evidence, _ = analyze_sources(early_sources)
+    skip_discovery = _has_critical_evidence(early_evidence)
+
+    # ------------------------------------------------------------------ #
+    # Phase 3: Discovery + script download (concurrent)                   #
+    # ------------------------------------------------------------------ #
     discovered_urls: list[str] = []
     discovered_html_list: list[str] = []
     discovered_links: list[str] = []
@@ -108,7 +183,14 @@ def run_scan(url: str, options: ScanOptions | None = None) -> dict:
     sitemap_urls_discovered: list[str] = []
     subdomain_urls_discovered: list[str] = []
 
-    if not opts.no_discovery:
+    all_script_urls = _dedupe_preserve_order(
+        initial_assets["script_urls"] + rendered_assets["script_urls"]
+    )
+    all_inline_scripts = (
+        initial_assets["inline_scripts"] + rendered_assets["inline_scripts"]
+    )
+
+    if not opts.no_discovery and not skip_discovery:
         discovery_seed_links = (
             initial_assets["links"]
             + initial_assets["iframes"]
@@ -116,8 +198,8 @@ def run_scan(url: str, options: ScanOptions | None = None) -> dict:
             + rendered_assets["iframes"]
         )
 
-        discovery_data = discover_public_surface(
-            session=session,
+        # Run discovery and initial script downloads concurrently.
+        discovery_coro = discover_public_surface_async(
             start_url=playwright_final_url,
             seed_links=discovery_seed_links,
             robots_txt=robots_txt,
@@ -127,6 +209,16 @@ def run_scan(url: str, options: ScanOptions | None = None) -> dict:
             max_depth=max(0, opts.discovery_max_depth),
             max_sitemaps=max(1, opts.discovery_max_sitemaps),
             max_subdomains=max(0, opts.discovery_max_subdomains),
+        )
+        scripts_coro = download_scripts_async(
+            script_urls=all_script_urls,
+            reference_url=playwright_final_url,
+            timeout=opts.http_timeout,
+            max_scripts=max(1, opts.max_scripts),
+        )
+
+        discovery_data, (scripts_content, script_errors) = await asyncio.gather(
+            discovery_coro, scripts_coro
         )
 
         checked_resources.extend(["discovery", "discovered_pages"])
@@ -145,29 +237,32 @@ def run_scan(url: str, options: ScanOptions | None = None) -> dict:
         if subdomain_urls_discovered:
             checked_resources.append("subdomain_discovery")
 
-    all_script_urls = _dedupe_preserve_order(
-        initial_assets["script_urls"] + rendered_assets["script_urls"] + discovered_script_urls
-    )
-    all_inline_scripts = (
-        initial_assets["inline_scripts"]
-        + rendered_assets["inline_scripts"]
-        + discovered_inline_scripts
-    )
+        all_script_urls = _dedupe_preserve_order(
+            all_script_urls + discovered_script_urls
+        )
+        all_inline_scripts = all_inline_scripts + discovered_inline_scripts
+    else:
+        # Discovery skipped — still download scripts from initial/rendered pages.
+        scripts_content, script_errors = await download_scripts_async(
+            script_urls=all_script_urls,
+            reference_url=playwright_final_url,
+            timeout=opts.http_timeout,
+            max_scripts=max(1, opts.max_scripts),
+        )
+        if skip_discovery:
+            checked_resources.append("early_exit")
+
+    checked_resources.append("scripts")
+    errors.extend(script_errors)
+
     all_iframes = _dedupe_preserve_order(initial_assets["iframes"] + rendered_assets["iframes"])
     all_links = _dedupe_preserve_order(
         initial_assets["links"] + rendered_assets["links"] + discovered_links
     )
 
-    scripts_content, script_errors = download_scripts(
-        session,
-        all_script_urls,
-        reference_url=playwright_final_url,
-        timeout=opts.http_timeout,
-        max_scripts=max(1, opts.max_scripts),
-    )
-    checked_resources.append("scripts")
-    errors.extend(script_errors)
-
+    # ------------------------------------------------------------------ #
+    # Phase 4: Analysis                                                    #
+    # ------------------------------------------------------------------ #
     sources: dict[str, list[str] | str] = {
         "html_initial": html_initial,
         "html_rendered": rendered_html,
@@ -209,6 +304,17 @@ def run_scan(url: str, options: ScanOptions | None = None) -> dict:
     )
 
     return report_data
+
+
+def _has_critical_evidence(evidence: list[dict]) -> bool:
+    """Return True when early evidence is strong enough to skip discovery."""
+    strong_hits = [
+        item
+        for item in evidence
+        if item.get("pattern_key") in _EARLY_EXIT_PATTERNS
+        and item.get("pattern_strength") in {"strong", "medium"}
+    ]
+    return len(strong_hits) >= 2
 
 
 def _dedupe_preserve_order(items: list[str]) -> list[str]:
