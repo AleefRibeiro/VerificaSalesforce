@@ -21,7 +21,7 @@ class ScanRequest(BaseModel):
     url: str = Field(..., min_length=3, max_length=2048)
 
 
-app = FastAPI(title="VerificaSalesforce API", version="1.1.0")
+app = FastAPI(title="VerificaSalesforce API", version="1.1.1")
 scan_lock = asyncio.Lock()
 SCAN_RETRY_AFTER_SECONDS = max(1, int(os.getenv("SCAN_RETRY_AFTER_SECONDS", "8")))
 
