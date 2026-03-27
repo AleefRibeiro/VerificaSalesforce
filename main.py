@@ -6,6 +6,7 @@ import sys
 from salesforce_scanner.analyzer import analyze_sources
 from salesforce_scanner.fetcher import (
     create_session,
+    discover_public_surface,
     download_scripts,
     extract_page_assets,
     fetch_public_resources,
@@ -35,7 +36,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--max-scripts",
         type=int,
-        default=25,
+        default=80,
         help="Limite de scripts externos para baixar",
     )
     parser.add_argument(
@@ -60,6 +61,35 @@ def parse_args() -> argparse.Namespace:
         "--skip-playwright",
         action="store_true",
         help="Pula a etapa de renderização com Playwright",
+    )
+    parser.add_argument(
+        "--no-discovery",
+        action="store_true",
+        help="Desativa descoberta de URLs internas (discovery)",
+    )
+    parser.add_argument(
+        "--discovery-max-pages",
+        type=int,
+        default=25,
+        help="Máximo de páginas internas para discovery",
+    )
+    parser.add_argument(
+        "--discovery-max-depth",
+        type=int,
+        default=1,
+        help="Profundidade máxima do discovery interno",
+    )
+    parser.add_argument(
+        "--discovery-max-sitemaps",
+        type=int,
+        default=10,
+        help="Máximo de sitemaps processados durante discovery",
+    )
+    parser.add_argument(
+        "--discovery-max-subdomains",
+        type=int,
+        default=40,
+        help="Máximo de subdomínios públicos (CT logs) adicionados ao discovery",
     )
     return parser.parse_args()
 
@@ -95,21 +125,7 @@ def main() -> int:
         base_url = initial_fetch.final_url or normalized_url
         html_initial = initial_fetch.text
 
-    assets = extract_page_assets(html_initial, base_url)
-    script_urls = assets["script_urls"]
-    inline_scripts = assets["inline_scripts"]
-    iframe_urls = assets["iframes"]
-    links = assets["links"]
-
-    vlog(args.verbose, f"Scripts encontrados no HTML inicial: {len(script_urls)}")
-    scripts_content, script_errors = download_scripts(
-        session,
-        script_urls,
-        timeout=args.http_timeout,
-        max_scripts=max(1, args.max_scripts),
-    )
-    checked_resources.append("scripts")
-    errors.extend(script_errors)
+    initial_assets = extract_page_assets(html_initial, base_url)
 
     resource_results, resource_errors = fetch_public_resources(
         session,
@@ -123,6 +139,12 @@ def main() -> int:
     sitemap_xml = resource_results["sitemap.xml"].text if "sitemap.xml" in resource_results else ""
 
     rendered_html = ""
+    rendered_assets = {
+        "script_urls": [],
+        "inline_scripts": [],
+        "iframes": [],
+        "links": [],
+    }
     network_requests: list[str] = []
     cookies: list[str] = []
     redirect_chain: list[str] = []
@@ -147,6 +169,9 @@ def main() -> int:
         redirect_chain = pw_data.get("redirect_chain", [])
         playwright_final_url = pw_data.get("final_url") or base_url
 
+        if rendered_html:
+            rendered_assets = extract_page_assets(rendered_html, playwright_final_url)
+
         cookie_items = pw_data.get("cookies", [])
         for item in cookie_items:
             name = item.get("name", "")
@@ -154,18 +179,96 @@ def main() -> int:
             if name:
                 cookies.append(f"{name}={value}")
 
+    discovered_urls: list[str] = []
+    discovered_html_list: list[str] = []
+    discovered_links: list[str] = []
+    discovered_script_urls: list[str] = []
+    discovered_inline_scripts: list[str] = []
+    sitemap_urls_discovered: list[str] = []
+    subdomain_urls_discovered: list[str] = []
+
+    if args.no_discovery:
+        vlog(args.verbose, "Discovery interno desativado por flag --no-discovery")
+    else:
+        vlog(args.verbose, "Executando discovery interno (sitemap/robots/crawl raso)")
+        discovery_seed_links = (
+            initial_assets["links"]
+            + initial_assets["iframes"]
+            + rendered_assets["links"]
+            + rendered_assets["iframes"]
+        )
+
+        discovery_data = discover_public_surface(
+            session=session,
+            start_url=playwright_final_url,
+            seed_links=discovery_seed_links,
+            robots_txt=robots_txt,
+            sitemap_xml=sitemap_xml,
+            timeout=args.http_timeout,
+            max_pages=max(1, args.discovery_max_pages),
+            max_depth=max(0, args.discovery_max_depth),
+            max_sitemaps=max(1, args.discovery_max_sitemaps),
+            max_subdomains=max(0, args.discovery_max_subdomains),
+        )
+
+        checked_resources.extend(["discovery", "discovered_pages"])
+        errors.extend(discovery_data.get("errors", []))
+
+        discovered_urls = discovery_data.get("pages_visited", [])
+        discovered_html_list = discovery_data.get("page_html", [])
+        discovered_links = discovery_data.get("links_found", [])
+        discovered_script_urls = discovery_data.get("script_urls", [])
+        discovered_inline_scripts = discovery_data.get("inline_scripts", [])
+        sitemap_urls_discovered = discovery_data.get("sitemap_urls", [])
+        subdomain_urls_discovered = discovery_data.get("subdomain_urls", [])
+
+        if discovery_data.get("sitemaps_checked"):
+            checked_resources.append("sitemap_discovery")
+        if subdomain_urls_discovered:
+            checked_resources.append("subdomain_discovery")
+
+    all_script_urls = _dedupe_preserve_order(
+        initial_assets["script_urls"] + rendered_assets["script_urls"] + discovered_script_urls
+    )
+    all_inline_scripts = (
+        initial_assets["inline_scripts"]
+        + rendered_assets["inline_scripts"]
+        + discovered_inline_scripts
+    )
+    all_iframes = _dedupe_preserve_order(initial_assets["iframes"] + rendered_assets["iframes"])
+    all_links = _dedupe_preserve_order(
+        initial_assets["links"] + rendered_assets["links"] + discovered_links
+    )
+
+    vlog(args.verbose, f"Scripts agregados para download: {len(all_script_urls)}")
+    scripts_content, script_errors = download_scripts(
+        session,
+        all_script_urls,
+        timeout=args.http_timeout,
+        max_scripts=max(1, args.max_scripts),
+    )
+    checked_resources.append("scripts")
+    errors.extend(script_errors)
+
     sources: dict[str, list[str] | str] = {
         "html_initial": html_initial,
         "html_rendered": rendered_html,
-        "script_url": script_urls,
-        "script_content": list(scripts_content.values()) + inline_scripts,
-        "iframe": iframe_urls,
-        "link": links,
+        "script_url": all_script_urls,
+        "script_content": list(scripts_content.values()) + all_inline_scripts,
+        "iframe": all_iframes,
+        "link": all_links,
         "network_request": network_requests,
         "cookie": cookies,
         "robots_txt": robots_txt,
         "sitemap_xml": sitemap_xml,
+        "sitemap_url": sitemap_urls_discovered,
+        "subdomain_url": subdomain_urls_discovered,
         "redirect_chain": redirect_chain,
+        "discovered_url": discovered_urls,
+        "discovered_html": discovered_html_list,
+        "discovered_link": discovered_links,
+        "discovered_script_url": discovered_script_urls,
+        "discovered_script_content": discovered_inline_scripts,
     }
 
     evidence, domains_found = analyze_sources(sources)

@@ -15,6 +15,18 @@ class PatternSpec:
 
 PATTERN_SPECS = [
     PatternSpec(
+        key="salesforce_named_subdomain",
+        regex=re.compile(r"\bsalesforce[-a-z0-9]*\.[a-z0-9.-]+\b", re.IGNORECASE),
+        weight=40,
+        reason="Subdomínio com nomenclatura 'salesforce-*' encontrado",
+    ),
+    PatternSpec(
+        key="salesforce_scrt_domain",
+        regex=re.compile(r"\b(?:[a-z0-9-]+\.)*salesforce-scrt\.com\b", re.IGNORECASE),
+        weight=50,
+        reason="Domínio *.salesforce-scrt.com encontrado",
+    ),
+    PatternSpec(
         key="service_force_domain",
         regex=re.compile(r"\bservice\.force\.com\b", re.IGNORECASE),
         weight=50,
@@ -63,6 +75,12 @@ PATTERN_SPECS = [
         reason="Indicador Experience Cloud/Siteforce encontrado",
     ),
     PatternSpec(
+        key="salesforce_product_clouds",
+        regex=re.compile(r"\b(?:sales\s*cloud|service\s*cloud|health\s*cloud)\b", re.IGNORECASE),
+        weight=25,
+        reason="Nomenclatura de produto Salesforce (Sales/Service/Health Cloud) encontrada",
+    ),
+    PatternSpec(
         key="marketingcloud",
         regex=re.compile(r"\b(?:marketingcloud|marketingcloudapps)\b", re.IGNORECASE),
         weight=30,
@@ -92,6 +110,7 @@ PATTERN_SPECS = [
 DOMAIN_HINTS = {
     "force.com",
     "salesforce.com",
+    "salesforce-scrt.com",
     "salesforce",
     "marketingcloudapps.com",
     "exacttarget.com",

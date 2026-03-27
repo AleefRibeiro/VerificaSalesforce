@@ -5,7 +5,18 @@ from urllib.parse import urlparse
 
 from .patterns import DOMAIN_HINTS, PATTERN_SPECS
 
-URL_SOURCE_TYPES = {"script_url", "iframe", "link", "network_request", "redirect_chain"}
+URL_SOURCE_TYPES = {
+    "script_url",
+    "iframe",
+    "link",
+    "network_request",
+    "redirect_chain",
+    "discovered_url",
+    "discovered_link",
+    "discovered_script_url",
+    "sitemap_url",
+    "subdomain_url",
+}
 
 _REASON_BY_SOURCE = {
     "html_initial": "Indicador encontrado no HTML inicial",
@@ -18,7 +29,14 @@ _REASON_BY_SOURCE = {
     "cookie": "Cookie com possível relação a Salesforce",
     "robots_txt": "Indicador encontrado em robots.txt",
     "sitemap_xml": "Indicador encontrado em sitemap.xml",
+    "sitemap_url": "URL de sitemap com indicador Salesforce",
     "redirect_chain": "Redirecionamento com indicador Salesforce",
+    "discovered_url": "Página descoberta com indicador Salesforce",
+    "discovered_link": "Link descoberto com indicador Salesforce",
+    "discovered_html": "Indicador encontrado em HTML de página descoberta",
+    "discovered_script_url": "Script descoberto com indicador Salesforce",
+    "discovered_script_content": "Conteúdo JS de página descoberta com indicador Salesforce",
+    "subdomain_url": "Subdomínio público descoberto com indicador Salesforce",
 }
 
 

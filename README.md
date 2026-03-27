@@ -17,6 +17,9 @@ O foco é **análise passiva e não invasiva**: somente conteúdo público carre
 - Leitura de recursos públicos:
   - `/robots.txt`
   - `/sitemap.xml`
+- Discovery interno por padrão:
+  - usa `robots.txt` + `sitemap.xml` para descobrir URLs públicas
+  - faz crawling interno raso com limites de segurança
 - Renderização headless com Playwright para capturar:
   - requests de rede
   - cadeia de redirecionamento
@@ -101,7 +104,12 @@ python main.py https://empresa.com.br --skip-playwright
 - `url` (posicional): URL/domínio alvo
 - `--json-output`: caminho do JSON de saída (padrão: `scan_result.json`)
 - `--verbose`: logs intermediários
-- `--max-scripts`: limite de scripts externos baixados (padrão: `25`)
+- `--max-scripts`: limite de scripts externos baixados (padrão: `80`)
+- `--no-discovery`: desabilita a descoberta de URLs internas (ligada por padrão)
+- `--discovery-max-pages`: máximo de páginas no discovery (padrão: `25`)
+- `--discovery-max-depth`: profundidade máxima do discovery (padrão: `1`)
+- `--discovery-max-sitemaps`: máximo de sitemaps processados (padrão: `10`)
+- `--discovery-max-subdomains`: máximo de subdomínios públicos adicionados via CT logs (padrão: `40`)
 - `--max-requests`: limite de requests observados via Playwright (padrão: `250`)
 - `--http-timeout`: timeout HTTP em segundos (padrão: `12`)
 - `--playwright-timeout-ms`: timeout do Playwright em ms (padrão: `20000`)
@@ -114,6 +122,8 @@ Implementada de forma simples e ajustável em `salesforce_scanner/patterns.py`:
 - `*.force.com`: +40
 - `service.force.com`: +50
 - `lightning.force.com`: +50
+- `*.salesforce-scrt.com`: +50
+- subdomínio `salesforce-*`: +40
 - `embeddedservice`: +45
 - `liveagent` / `salesforceliveagent`: +40
 - `pardot`: +35
@@ -122,6 +132,7 @@ Implementada de forma simples e ajustável em `salesforce_scanner/patterns.py`:
 - `demandware` / `commerce cloud`: +30
 - `salesforce`: +15
 - `visualforce`: +25
+- `sales cloud` / `service cloud` / `health cloud`: +25
 - `experience cloud` / `siteforce`: +30
 
 Classificação:
