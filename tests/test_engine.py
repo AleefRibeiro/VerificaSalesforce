@@ -113,6 +113,26 @@ class DecisionEngineTests(unittest.TestCase):
         self.assertIn("Marketing Cloud", decision["classification"])
         self.assertFalse(decision["classification"].startswith("Confirmado"))
 
+    def test_my_salesforce_domain_confirms(self) -> None:
+        evidence = [
+            self._make_evidence(
+                "my_salesforce_domain",
+                "brand_domain_probe",
+                55,
+                "strong",
+                140,
+                value="https://acme.my.salesforce.com/",
+                products=["Service Cloud", "Experience Cloud"],
+            )
+        ]
+
+        details = compute_score(evidence)
+        products = infer_products(evidence)
+        decision = decide_classification(evidence, details, products)
+
+        self.assertEqual(decision["classification"], "Confirmado")
+        self.assertTrue(decision["salesforce_detected"])
+
     def test_weak_signal_alone_is_not_detected(self) -> None:
         evidence = [
             self._make_evidence(

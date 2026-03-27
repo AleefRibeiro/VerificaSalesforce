@@ -80,6 +80,17 @@ def parse_args() -> argparse.Namespace:
         default=40,
         help="Máximo de subdomínios públicos (CT logs) adicionados ao discovery",
     )
+    parser.add_argument(
+        "--no-domain-probe",
+        action="store_true",
+        help="Desativa a etapa de domain-first probe em CT logs Salesforce",
+    )
+    parser.add_argument(
+        "--domain-probe-max-domains",
+        type=int,
+        default=20,
+        help="Máximo de domínios Salesforce coletados na etapa domain-first",
+    )
     return parser.parse_args()
 
 
@@ -97,6 +108,8 @@ def main() -> int:
         discovery_max_depth=max(0, args.discovery_max_depth),
         discovery_max_sitemaps=max(1, args.discovery_max_sitemaps),
         discovery_max_subdomains=max(0, args.discovery_max_subdomains),
+        domain_probe_enabled=not args.no_domain_probe,
+        domain_probe_max_domains=max(1, args.domain_probe_max_domains),
     )
 
     if args.verbose:

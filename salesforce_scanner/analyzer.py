@@ -17,6 +17,7 @@ URL_SOURCE_TYPES = {
     "discovered_script_url",
     "sitemap_url",
     "subdomain_url",
+    "brand_domain_probe",
 }
 
 _REASON_BY_SOURCE = {
@@ -38,6 +39,7 @@ _REASON_BY_SOURCE = {
     "discovered_script_url": "Script descoberto com indicador Salesforce",
     "discovered_script_content": "Conteúdo JS de página descoberta com indicador Salesforce",
     "subdomain_url": "Subdomínio público descoberto com indicador Salesforce",
+    "brand_domain_probe": "Domínio Salesforce relacionado à marca descoberto em CT logs",
 }
 
 

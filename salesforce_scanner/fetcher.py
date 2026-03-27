@@ -100,6 +100,15 @@ SUBDOMAIN_PRIORITY_TERMS = (
     "chat",
 )
 
+SALESFORCE_BRAND_SUFFIXES = (
+    "my.salesforce.com",
+    "lightning.force.com",
+    "my.site.com",
+    "salesforce-sites.com",
+    "service.force.com",
+    "visualforce.com",
+)
+
 
 @dataclass
 class FetchResult:
@@ -528,6 +537,83 @@ def discover_subdomains_from_ct_logs(
     )
 
     urls = [f"https://{host_name}/" for host_name in hosts_ranked[:max(0, max_subdomains)]]
+    return urls, errors
+
+
+def discover_salesforce_brand_domains(
+    session: requests.Session,
+    reference_url: str,
+    timeout: int = 8,
+    max_domains: int = 20,
+    max_tokens: int = 3,
+) -> tuple[list[str], list[str]]:
+    """Probe CT logs for brand-related domains under known Salesforce suffixes.
+
+    This phase is passive and independent from the target homepage response,
+    which helps when the root site is protected by anti-bot/WAF controls.
+    """
+    errors: list[str] = []
+    host = urlparse(reference_url).hostname
+    if not host:
+        return [], errors
+
+    tokens = _company_tokens(host, max_tokens=max_tokens)
+    if not tokens:
+        return [], errors
+
+    found_hosts: set[str] = set()
+
+    for token in tokens:
+        query_url = f"https://crt.sh/?q={token}&output=json"
+        result = fetch_text(
+            session,
+            query_url,
+            timeout=max(3, timeout),
+            max_bytes=4_000_000,
+        )
+        if result.error:
+            errors.append(f"crtsh_brand_probe_failed: {token} ({result.error})")
+            continue
+
+        try:
+            import json
+
+            payload = json.loads(result.text or "[]")
+        except Exception as exc:
+            errors.append(f"crtsh_brand_probe_parse_failed: {token} ({exc})")
+            continue
+
+        for row in payload:
+            name_value = str(row.get("name_value", "")).strip()
+            if not name_value:
+                continue
+            for item in name_value.splitlines():
+                cleaned = item.strip().lower().lstrip("*.").strip(".")
+                if not cleaned:
+                    continue
+                if token not in cleaned:
+                    continue
+                if not any(cleaned.endswith(suffix) for suffix in SALESFORCE_BRAND_SUFFIXES):
+                    continue
+                found_hosts.add(cleaned)
+
+        if len(found_hosts) >= max_domains:
+            break
+
+    if not found_hosts:
+        return [], errors
+
+    ranked_hosts = sorted(
+        found_hosts,
+        key=lambda host_name: (
+            0 if host_name.endswith(".my.salesforce.com") else 1,
+            0 if host_name.endswith(".lightning.force.com") else 1,
+            0 if host_name.endswith(".service.force.com") else 1,
+            len(host_name),
+            host_name,
+        ),
+    )
+    urls = [f"https://{host_name}/" for host_name in ranked_hosts[: max(1, max_domains)]]
     return urls, errors
 
 
@@ -1097,6 +1183,51 @@ def _domain_key(hostname: str) -> str:
         return host
 
     return host
+
+
+def _company_tokens(hostname: str, max_tokens: int = 3) -> list[str]:
+    host = hostname.lower().strip(".")
+    if not host:
+        return []
+
+    try:
+        import tldextract
+
+        extracted = tldextract.extract(host)
+        base = extracted.domain or host.split(".")[0]
+    except Exception:
+        base = host.split(".")[0]
+
+    common_skip = {
+        "www",
+        "com",
+        "net",
+        "org",
+        "co",
+        "io",
+        "br",
+        "app",
+        "cloud",
+        "site",
+    }
+    raw_parts = re.split(r"[^a-z0-9]+", base)
+
+    tokens: list[str] = []
+    seen: set[str] = set()
+    for part in raw_parts:
+        token = part.strip()
+        if len(token) < 3:
+            continue
+        if token in common_skip:
+            continue
+        if token in seen:
+            continue
+        seen.add(token)
+        tokens.append(token)
+        if len(tokens) >= max(1, max_tokens):
+            break
+
+    return tokens
 
 
 def _unique_http_urls(urls: list[str]) -> list[str]:

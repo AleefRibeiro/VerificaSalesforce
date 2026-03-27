@@ -10,6 +10,7 @@ Este repositório é o backend do scanner e está pronto para deploy no Railway.
 - Executa análise passiva (sem autenticação, sem brute force, sem exploração)
 - Retorna JSON com score, classificação, produtos inferidos e evidências
 - Não salva em banco (stateless)
+- Inclui etapa **domain-first** (CT logs) para achar domínios Salesforce relacionados à marca mesmo quando a home está protegida
 
 ## Estrutura do projeto
 
@@ -190,6 +191,12 @@ Scan único:
 
 ```bash
 python scanner_cli.py https://empresa.com.br --json-output scan_result.json
+```
+
+Desabilitar somente o domain-first probe:
+
+```bash
+python scanner_cli.py https://empresa.com.br --no-domain-probe
 ```
 
 Scan em massa:

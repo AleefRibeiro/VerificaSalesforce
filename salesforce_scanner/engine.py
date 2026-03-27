@@ -6,6 +6,7 @@ from dataclasses import dataclass
 from .analyzer import analyze_sources
 from .fetcher import (
     create_session,
+    discover_salesforce_brand_domains,
     discover_public_surface_async,
     download_scripts_async,
     extract_page_assets,
@@ -43,6 +44,8 @@ class ScanOptions:
     discovery_max_depth: int = 1
     discovery_max_sitemaps: int = 10
     discovery_max_subdomains: int = 40
+    domain_probe_enabled: bool = True
+    domain_probe_max_domains: int = 20
     # Overall wall-clock timeout for the entire scan (seconds).  0 = no limit.
     timeout: int = 30
 
@@ -84,10 +87,27 @@ async def _async_scan(url: str, opts: ScanOptions) -> dict:
     public_resources_coro = asyncio.to_thread(
         fetch_public_resources, session, normalized_url, opts.http_timeout
     )
-
-    initial_fetch, (resource_results, resource_errors) = await asyncio.gather(
-        initial_fetch_coro, public_resources_coro
-    )
+    if opts.domain_probe_enabled:
+        brand_probe_coro = asyncio.to_thread(
+            discover_salesforce_brand_domains,
+            session,
+            normalized_url,
+            min(8, max(3, opts.http_timeout)),
+            max(1, opts.domain_probe_max_domains),
+        )
+        initial_fetch, (resource_results, resource_errors), (
+            brand_domain_probe_urls,
+            brand_probe_errors,
+        ) = await asyncio.gather(
+            initial_fetch_coro, public_resources_coro, brand_probe_coro
+        )
+        checked_resources.append("brand_domain_probe")
+        errors.extend(brand_probe_errors)
+    else:
+        initial_fetch, (resource_results, resource_errors) = await asyncio.gather(
+            initial_fetch_coro, public_resources_coro
+        )
+        brand_domain_probe_urls = []
 
     checked_resources.append("html_initial")
     if initial_fetch.error:
@@ -168,6 +188,7 @@ async def _async_scan(url: str, opts: ScanOptions) -> dict:
         "discovered_script_content": [],
         "sitemap_url": [],
         "subdomain_url": [],
+        "brand_domain_probe": brand_domain_probe_urls,
     }
     early_evidence, _ = analyze_sources(early_sources)
     skip_discovery = _has_critical_evidence(early_evidence)
@@ -276,6 +297,7 @@ async def _async_scan(url: str, opts: ScanOptions) -> dict:
         "sitemap_xml": sitemap_xml,
         "sitemap_url": sitemap_urls_discovered,
         "subdomain_url": subdomain_urls_discovered,
+        "brand_domain_probe": brand_domain_probe_urls,
         "redirect_chain": redirect_chain,
         "discovered_url": discovered_urls,
         "discovered_html": discovered_html_list,

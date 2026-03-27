@@ -50,6 +50,24 @@ PATTERN_SPECS = [
         products=("Service Cloud",),
     ),
     PatternSpec(
+        key="my_salesforce_domain",
+        regex=re.compile(r"\b(?:[a-z0-9-]+\.)*my\.salesforce\.com\b", re.IGNORECASE),
+        weight=55,
+        reason="Domínio *.my.salesforce.com encontrado",
+        strength=STRONG,
+        cap=140,
+        products=("Service Cloud", "Experience Cloud"),
+    ),
+    PatternSpec(
+        key="my_site_domain",
+        regex=re.compile(r"\b(?:[a-z0-9-]+\.)*my\.site\.com\b", re.IGNORECASE),
+        weight=50,
+        reason="Domínio *.my.site.com encontrado",
+        strength=STRONG,
+        cap=130,
+        products=("Experience Cloud",),
+    ),
+    PatternSpec(
         key="salesforce_domain",
         regex=re.compile(r"\b(?:[a-z0-9-]+\.)*salesforce\.com\b", re.IGNORECASE),
         weight=45,
@@ -204,12 +222,15 @@ MARKETING_PATTERN_KEYS = {
 EXPERIENCE_PATTERN_KEYS = {
     "experience_siteforce",
     "lightning_force_domain",
+    "my_site_domain",
+    "my_salesforce_domain",
 }
 SERVICE_PATTERN_KEYS = {
     "service_force_domain",
     "embeddedservice",
     "liveagent",
     "salesforce_scrt_domain",
+    "my_salesforce_domain",
 }
 COMMERCE_PATTERN_KEYS = {
     "commerce_cloud",
@@ -219,6 +240,8 @@ CORE_PATTERN_KEYS = {
     "service_force_domain",
     "lightning_force_domain",
     "salesforce_scrt_domain",
+    "my_salesforce_domain",
+    "my_site_domain",
     "salesforce_domain",
     "force_domain",
     "visualforce_domain",
@@ -231,6 +254,8 @@ DOMAIN_HINTS = {
     "force.com",
     "salesforce.com",
     "salesforce-scrt.com",
+    "my.site.com",
+    "salesforce-sites.com",
     "visualforce.com",
     "salesforceliveagent.com",
     "marketingcloudapps.com",

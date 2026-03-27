@@ -20,6 +20,7 @@ SOURCE_MULTIPLIERS = {
     "discovered_script_url": 1.20,
     "subdomain_url": 1.15,
     "sitemap_url": 1.10,
+    "brand_domain_probe": 1.00,
     "script_content": 1.00,
     "discovered_script_content": 0.95,
     "html_rendered": 0.90,
@@ -162,6 +163,7 @@ def decide_classification(evidence: list[dict], score_details: dict, products: l
         "discovered_script_url",
         "sitemap_url",
         "subdomain_url",
+        "brand_domain_probe",
     }
 
     if _has_pattern_in_sources(evidence, "service_force_domain", high_confidence_sources):
@@ -174,9 +176,26 @@ def decide_classification(evidence: list[dict], score_details: dict, products: l
             rationale="Confirmado porque houve domínio service.force.com em fonte forte de rede/URL.",
         )
 
+    if _has_pattern_in_sources(evidence, "my_salesforce_domain", high_confidence_sources):
+        triggered_rules.append("my.salesforce.com em fonte de rede/URL forte")
+        return _build_decision(
+            classification="Confirmado",
+            detected=True,
+            score=score,
+            triggered_rules=triggered_rules,
+            rationale="Confirmado porque houve domínio my.salesforce.com associado ao alvo.",
+        )
+
     if _has_pattern(evidence, "embeddedservice") and _has_any_pattern(
         evidence,
-        {"force_domain", "service_force_domain", "salesforce_scrt_domain", "salesforce_domain"},
+        {
+            "force_domain",
+            "service_force_domain",
+            "salesforce_scrt_domain",
+            "salesforce_domain",
+            "my_salesforce_domain",
+            "my_site_domain",
+        },
     ):
         triggered_rules.append("embeddedservice + domínio force/salesforce")
         return _build_decision(
@@ -189,7 +208,14 @@ def decide_classification(evidence: list[dict], score_details: dict, products: l
 
     if _has_pattern(evidence, "liveagent") and _has_any_pattern(
         evidence,
-        {"force_domain", "service_force_domain", "salesforce_scrt_domain", "salesforce_domain"},
+        {
+            "force_domain",
+            "service_force_domain",
+            "salesforce_scrt_domain",
+            "salesforce_domain",
+            "my_salesforce_domain",
+            "my_site_domain",
+        },
     ):
         triggered_rules.append("liveagent + domínio force/salesforce")
         return _build_decision(
