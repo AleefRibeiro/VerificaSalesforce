@@ -101,6 +101,22 @@ Sem Playwright (modo reduzido):
 python main.py https://empresa.com.br --skip-playwright
 ```
 
+## Modo em massa (bulk)
+
+Rodar em várias URLs e gerar um TXT único resumido:
+
+```bash
+python bulk_scan.py --input-file results/massa_urls.txt --output-txt results/massa_resumo.txt
+```
+
+Formato do resumo:
+
+- `Empresa`
+- `Site`
+- `% Salesforce` (confiança estimada)
+- `Classificação`
+- `Status` (`ok`, `ok com ressalvas`, ou `inacessível ...`)
+
 ## Opções de linha de comando
 
 - `url` (posicional): URL/domínio alvo
