@@ -13,8 +13,16 @@ import requests
 from bs4 import BeautifulSoup
 
 DEFAULT_USER_AGENT = (
-    "Mozilla/5.0 (compatible; SalesforceScanner/1.0; +https://example.local/scanner)"
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+    "(KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36"
 )
+
+DEFAULT_REQUEST_HEADERS = {
+    "User-Agent": DEFAULT_USER_AGENT,
+    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+    "Accept-Language": "pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7",
+    "Cache-Control": "no-cache",
+}
 
 _NON_PAGE_EXTENSIONS = {
     ".js",
@@ -126,7 +134,7 @@ def get_origin(url: str) -> str:
 
 def create_session() -> requests.Session:
     session = requests.Session()
-    session.headers.update({"User-Agent": DEFAULT_USER_AGENT})
+    session.headers.update(DEFAULT_REQUEST_HEADERS)
     return session
 
 
@@ -710,7 +718,7 @@ async def _async_fetch_text(
 def _make_async_client(timeout: int) -> httpx.AsyncClient:
     """Create a shared httpx.AsyncClient with connection pooling."""
     return httpx.AsyncClient(
-        headers={"User-Agent": DEFAULT_USER_AGENT},
+        headers=DEFAULT_REQUEST_HEADERS,
         timeout=httpx.Timeout(timeout, connect=min(timeout, 10)),
         limits=httpx.Limits(max_connections=20, max_keepalive_connections=10),
         verify=False,  # mirrors requests session behaviour (ignore_https_errors)
