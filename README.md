@@ -1,107 +1,124 @@
-# VerificaSalesforce Backend (API + Scanner)
+# VerificaSalesforce Backend
 
-Backend em Python para detecção passiva de evidências públicas de Salesforce.
+API FastAPI para detecção passiva de evidências públicas de Salesforce em sites.
 
-O projeto roda como API HTTP (FastAPI) para deploy no Railway, e também mantém utilitários de CLI para uso local.
+Este repositório é o backend do scanner e está pronto para deploy no Railway.
 
-## Estrutura
+## O que a API faz
+
+- Recebe uma URL pública (`http`/`https`)
+- Executa análise passiva (sem autenticação, sem brute force, sem exploração)
+- Retorna JSON com score, classificação, produtos inferidos e evidências
+- Não salva em banco (stateless)
+
+## Estrutura do projeto
 
 ```text
 .
-├── main.py                      # API FastAPI (Railway entrypoint)
-├── scanner_cli.py               # CLI local para scan único
-├── bulk_scan.py                 # Execução em massa (resumo TXT/JSON)
+├── main.py                      # API FastAPI (entrypoint Railway)
+├── scanner_cli.py               # CLI para scan único local
+├── bulk_scan.py                 # execução em massa (TXT/JSON)
 ├── requirements.txt
-├── README.md
-├── tests
-│   └── test_engine.py
-└── salesforce_scanner
-    ├── __init__.py
+├── tests/
+└── salesforce_scanner/
     ├── analyzer.py
-    ├── engine.py                # run_scan(url) central
+    ├── engine.py                # run_scan(url)
     ├── fetcher.py
     ├── patterns.py
     ├── report.py
     └── scorer.py
 ```
 
-## Requisitos
+## Endpoints
 
-- Python 3.11+
-- Dependências do `requirements.txt`
+### `GET /health`
 
-## Instalação
-
-```bash
-python3 -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
-python -m playwright install chromium
-```
-
-## Rodando localmente (API)
-
-```bash
-uvicorn main:app --host 0.0.0.0 --port 8000
-```
-
-### Health check
-
-```bash
-curl http://localhost:8000/health
-```
-
-Resposta:
+Retorno esperado:
 
 ```json
 {"status":"ok"}
 ```
 
-### Scan
+### `POST /scan`
 
-```bash
-curl -X POST http://localhost:8000/scan \
-  -H "Content-Type: application/json" \
-  -d '{"url":"https://www.einstein.br"}'
+Payload:
+
+```json
+{"url":"https://empresa.com.br"}
 ```
 
-Exemplo de resposta:
+Resposta (exemplo):
 
 ```json
 {
-  "input_url": "https://www.einstein.br",
-  "final_url": "https://www.einstein.br",
+  "input_url": "https://empresa.com.br",
+  "final_url": "https://www.empresa.com.br",
   "score": 82,
   "classification": "Confirmado",
   "salesforce_detected": true,
-  "products": ["Service Cloud"],
+  "products": ["Service Cloud", "Marketing Cloud"],
   "evidence": [
     {
       "type": "network_request",
       "value": "https://service.force.com/...",
-      "reason": "Request de rede para recurso com indicador Salesforce",
-      "pattern_key": "service_force_domain"
+      "reason": "Request de rede para recurso com indicador Salesforce"
     }
   ]
 }
 ```
 
-## Regras de validação de URL na API
+## Testando agora no Railway
 
-A rota `/scan` aceita apenas URLs públicas `http/https` e bloqueia:
+1. Copie a URL pública do seu serviço no Railway (ex.: `https://verificasalesforce-production.up.railway.app`).
+2. No terminal, defina a variável:
 
-- `localhost`
-- `127.0.0.1`
-- `0.0.0.0`
-- `::1`
-- domínios locais/internos (`.localhost`, `.local`, `.internal`)
-- IPs privados, loopback, link-local, reservados e não especificados
+```bash
+API_URL="https://SEU-SERVICO.up.railway.app"
+```
+
+3. Teste saúde da API:
+
+```bash
+curl -sS "$API_URL/health"
+```
+
+4. Teste scan:
+
+```bash
+curl -sS -X POST "$API_URL/scan" \
+  -H "Content-Type: application/json" \
+  -d '{"url":"https://www.einstein.br"}'
+```
+
+5. Teste com URL inválida (para validar proteção):
+
+```bash
+curl -sS -X POST "$API_URL/scan" \
+  -H "Content-Type: application/json" \
+  -d '{"url":"http://127.0.0.1"}'
+```
+
+Você deve receber erro `400` com mensagem de URL inválida.
+
+## Teste rápido via navegador (frontend)
+
+No console do navegador:
+
+```javascript
+fetch("https://SEU-SERVICO.up.railway.app/scan", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({ url: "https://www.alelo.com.br/" })
+}).then(r => r.json()).then(console.log)
+```
 
 ## CORS
 
-Ativo por padrão com `allow_origins=["*"]`.
+Atualmente está aberto para facilitar testes:
 
-Para restringir no futuro, use variável de ambiente:
+- `allow_origins=["*"]`
+
+Para produção com domínio específico, configure a variável:
 
 ```bash
 CORS_ALLOW_ORIGINS=https://averon.cloud,https://www.averon.cloud
@@ -109,18 +126,37 @@ CORS_ALLOW_ORIGINS=https://averon.cloud,https://www.averon.cloud
 
 ## Deploy no Railway
 
-1. Suba o repositório no GitHub.
-2. Crie um projeto no Railway a partir do repo.
-3. Configure o start command:
+- Start command:
 
 ```bash
 uvicorn main:app --host 0.0.0.0 --port $PORT
 ```
 
-4. Garanta que o build use `pip install -r requirements.txt`.
-5. (Opcional) Configure `CORS_ALLOW_ORIGINS`.
+- Build/install:
 
-## Scanner via CLI (opcional)
+```bash
+pip install -r requirements.txt
+python -m playwright install chromium
+```
+
+## Rodando localmente
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+python -m playwright install chromium
+uvicorn main:app --host 0.0.0.0 --port 8000
+```
+
+Testes locais:
+
+```bash
+curl -sS http://localhost:8000/health
+curl -sS -X POST http://localhost:8000/scan -H "Content-Type: application/json" -d '{"url":"https://www.igua.com.br/"}'
+```
+
+## CLI (opcional)
 
 Scan único:
 
@@ -128,7 +164,7 @@ Scan único:
 python scanner_cli.py https://empresa.com.br --json-output scan_result.json
 ```
 
-Bulk scan:
+Scan em massa:
 
 ```bash
 python bulk_scan.py \
@@ -137,16 +173,16 @@ python bulk_scan.py \
   --output-json results/massa_resumo.json
 ```
 
-## Testes
+## Segurança e limites
+
+- Sem brute force
+- Sem autenticação
+- Sem exploração de falhas
+- Somente conteúdo publicamente acessível
+- Sem banco de dados/persistência
+
+## Testes automatizados
 
 ```bash
 python -m unittest discover -s tests -p "test_*.py" -v
 ```
-
-## Observações
-
-- Não usa brute force
-- Não tenta autenticação
-- Não acessa áreas privadas
-- Analisa somente conteúdo publicamente acessível
-- Sem banco de dados, sem persistência e sem fila: recebe, analisa, retorna
