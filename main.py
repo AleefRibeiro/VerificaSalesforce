@@ -13,9 +13,10 @@ from salesforce_scanner.fetcher import (
     fetch_text,
     normalize_url,
     render_with_playwright,
+    serialize_cookies_for_analysis,
 )
 from salesforce_scanner.report import build_report, print_terminal_report, save_json_report
-from salesforce_scanner.scorer import classify_score, compute_score, salesforce_detected
+from salesforce_scanner.scorer import compute_score, decide_classification, infer_products
 
 
 def parse_args() -> argparse.Namespace:
@@ -173,11 +174,7 @@ def main() -> int:
             rendered_assets = extract_page_assets(rendered_html, playwright_final_url)
 
         cookie_items = pw_data.get("cookies", [])
-        for item in cookie_items:
-            name = item.get("name", "")
-            value = item.get("value", "")
-            if name:
-                cookies.append(f"{name}={value}")
+        cookies, _ = serialize_cookies_for_analysis(cookie_items)
 
     discovered_urls: list[str] = []
     discovered_html_list: list[str] = []
@@ -244,6 +241,7 @@ def main() -> int:
     scripts_content, script_errors = download_scripts(
         session,
         all_script_urls,
+        reference_url=playwright_final_url,
         timeout=args.http_timeout,
         max_scripts=max(1, args.max_scripts),
     )
@@ -272,22 +270,22 @@ def main() -> int:
     }
 
     evidence, domains_found = analyze_sources(sources)
-    score = compute_score(evidence)
-    classification = classify_score(score)
-    detected = salesforce_detected(score)
+    score_details = compute_score(evidence)
+    inferred_products = infer_products(evidence)
+    decision = decide_classification(evidence, score_details, inferred_products)
 
     final_url = playwright_final_url or base_url
     report_data = build_report(
         input_url=args.url,
         normalized_url=normalized_url,
         final_url=final_url,
-        score=score,
-        classification=classification,
-        detected=detected,
         evidence=evidence,
         domains_found=domains_found,
         checked_resources=_dedupe_preserve_order(checked_resources),
         errors=errors,
+        score_details=score_details,
+        decision=decision,
+        inferred_products=inferred_products,
     )
 
     print_terminal_report(report_data)

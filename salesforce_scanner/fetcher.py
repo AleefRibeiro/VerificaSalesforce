@@ -43,6 +43,53 @@ _NON_PAGE_EXTENSIONS = {
 _LOC_TAG_PATTERN = re.compile(r"<loc>\s*(.*?)\s*</loc>", re.IGNORECASE | re.DOTALL)
 _ROBOTS_SITEMAP_PATTERN = re.compile(r"(?im)^\s*sitemap:\s*(\S+)\s*$")
 
+SCRIPT_PATH_PRIORITY_TERMS = (
+    "salesforce",
+    "force",
+    "embedded",
+    "service",
+    "chat",
+    "liveagent",
+    "support",
+    "community",
+    "experience",
+    "pardot",
+    "marketingcloud",
+)
+
+HOST_PRIORITY_HINTS = (
+    "salesforce",
+    "force.com",
+    "visualforce",
+    "liveagent",
+    "exacttarget",
+    "marketingcloud",
+    "pardot",
+)
+
+SUBDOMAIN_PRIORITY_TERMS = (
+    "salesforce",
+    "help",
+    "support",
+    "portal",
+    "community",
+    "communities",
+    "login",
+    "members",
+    "customers",
+    "customer",
+    "selfservice",
+    "experience",
+    "partners",
+    "partner",
+    "cases",
+    "case",
+    "service",
+    "atendimento",
+    "sac",
+    "chat",
+)
+
 
 @dataclass
 class FetchResult:
@@ -150,6 +197,7 @@ def extract_page_assets(html: str, base_url: str) -> dict[str, list[str]]:
 def download_scripts(
     session: requests.Session,
     script_urls: list[str],
+    reference_url: str = "",
     timeout: int = 10,
     max_scripts: int = 25,
     max_bytes: int = 500_000,
@@ -157,7 +205,13 @@ def download_scripts(
     scripts_content: dict[str, str] = {}
     errors: list[str] = []
 
-    for script_url in script_urls[:max_scripts]:
+    prioritized_scripts = prioritize_script_urls(
+        script_urls=script_urls,
+        reference_url=reference_url,
+        max_scripts=max_scripts,
+    )
+
+    for script_url in prioritized_scripts:
         result = fetch_text(session, script_url, timeout=timeout, max_bytes=max_bytes)
         if result.error:
             errors.append(f"script_fetch_failed: {script_url} ({result.error})")
@@ -455,20 +509,9 @@ def discover_subdomains_from_ct_logs(
     if not hosts_ranked:
         return [], errors
 
-    priority_terms = (
-        "salesforce",
-        "service",
-        "support",
-        "suporte",
-        "atendimento",
-        "help",
-        "portal",
-        "customer",
-        "chat",
-    )
     hosts_ranked.sort(
         key=lambda h: (
-            0 if any(term in h for term in priority_terms) else 1,
+            0 if any(term in h for term in SUBDOMAIN_PRIORITY_TERMS) else 1,
             len(h),
             h,
         )
@@ -476,6 +519,84 @@ def discover_subdomains_from_ct_logs(
 
     urls = [f"https://{host_name}/" for host_name in hosts_ranked[:max(0, max_subdomains)]]
     return urls, errors
+
+
+def prioritize_script_urls(
+    script_urls: list[str],
+    reference_url: str,
+    max_scripts: int,
+) -> list[str]:
+    ref_host = (urlparse(reference_url).hostname or "").lower()
+    ref_domain_key = _domain_key(ref_host) if ref_host else ""
+
+    scored: list[tuple[int, int, str]] = []
+    for idx, url in enumerate(_unique_http_urls(script_urls)):
+        parsed = urlparse(url)
+        host = (parsed.hostname or "").lower()
+        path = (parsed.path or "").lower()
+        score = 0
+
+        if any(hint in host for hint in HOST_PRIORITY_HINTS):
+            score += 120
+
+        host_key = _domain_key(host) if host else ""
+        if ref_domain_key and host_key == ref_domain_key:
+            score += 80
+        elif ref_host and (host == ref_host or host.endswith(f".{ref_host}")):
+            score += 50
+
+        for term in SCRIPT_PATH_PRIORITY_TERMS:
+            if term in path:
+                score += 18
+
+        if "bundle" in path or "chunk" in path or "main" in path:
+            score += 8
+
+        if path.endswith(".js"):
+            score += 4
+
+        scored.append((score, -idx, url))
+
+    scored.sort(reverse=True)
+    return [url for _, _, url in scored[: max(1, max_scripts)]]
+
+
+def serialize_cookies_for_analysis(cookies: list[dict]) -> tuple[list[str], list[dict]]:
+    cookie_strings: list[str] = []
+    structured: list[dict] = []
+
+    for cookie in cookies:
+        name = str(cookie.get("name", "")).strip()
+        if not name:
+            continue
+
+        domain = str(cookie.get("domain", "")).strip().lower()
+        path = str(cookie.get("path", "")).strip() or "/"
+        secure = bool(cookie.get("secure", False))
+        http_only = bool(cookie.get("httpOnly", False))
+        same_site = str(cookie.get("sameSite", "")).strip() or "unspecified"
+        value_prefix = str(cookie.get("value", ""))[:32]
+
+        structured_item = {
+            "name": name,
+            "domain": domain,
+            "path": path,
+            "secure": secure,
+            "http_only": http_only,
+            "same_site": same_site,
+            "value_prefix": value_prefix,
+        }
+        structured.append(structured_item)
+
+        cookie_strings.append(
+            (
+                f"cookie_name={name}; cookie_domain={domain}; cookie_path={path}; "
+                f"secure={secure}; httponly={http_only}; samesite={same_site}; "
+                f"value_prefix={value_prefix}"
+            )
+        )
+
+    return cookie_strings, structured
 
 
 def render_with_playwright(
