@@ -1,5 +1,13 @@
 # VerificaSalesforce Backend
 
+## Pesquisa privada v2 — implementação local
+
+A branch `codex/scanner-research-v2` adiciona o motor `research_v2/` e a aplicação separada `research_api.py`, com pesquisa por domínio explícito, evidências datadas, deduplicação, cache por workspace e classificação conservadora. As rotas `/v2/research`, `/v2/research/batch` e `/v2/reports/{id}` exigem sessão validada; o app padrão nega acesso e todos os fornecedores permanecem desativados.
+
+Veja [contratos, limites, configuração pendente e testes](docs/PRIVATE_RESEARCH_V2.md). Os 47 testes offline estão registrados em [evidence/research-v2-tests.txt](evidence/research-v2-tests.txt). Não houve pesquisa real ou consumo de créditos. O processo Railway `main:app` e o código da v1 permanecem iguais à base publicada; não houve deploy.
+
+O restante deste README descreve a **API v1 existente**, incluindo exemplos históricos que não representam benchmark da v2.
+
 API FastAPI para detecção passiva de evidências públicas de Salesforce em sites.
 
 Este repositório é o backend do scanner e está pronto para deploy no Railway.
