@@ -17,11 +17,14 @@ Checkpoint local de 7 de outubro de 2026. Implementação separada da API public
 | Rota | Resultado e acesso |
 | --- | --- |
 | `GET /health` | Estado genérico, sem pesquisa/dados de empresas |
+| `GET /v2/access` | Sessão validada e `research:read`; informa validade, permissões e fontes configuradas para o workspace, sem coletar ou retornar identidade/chaves |
 | `POST /v2/research` | Um domínio explícito; exige sessão validada e `research:write` |
 | `POST /v2/research/batch` | 1–5 entradas; deduplica domínio/escopo/id; exige `research:write` |
 | `GET /v2/reports/{id}` | Relatório do próprio workspace, dentro do TTL; exige `research:read` |
 
 A aplicação padrão responde **401 a toda rota /v2**, mesmo com um Bearer arbitrário. Não existe login/OAuth simulado, chave administrativa fixa, leitura de claims sem validação, permissão por header ou ativação de fonte em JSON do cliente. A configuração de CORS permanece fechada. Documentação HTTP e OpenAPI públicas estão desativadas.
+
+O endpoint de acesso sinaliza configuração disponível, não sucesso garantido de uma coleta. Exige fonte habilitada na política, workspace permitido e chave presente quando necessária. Sessão somente de leitura não pode habilitar a operação de pesquisa. O frontend preparado verifica esse contrato antes de enviar POST e permanece sem runtime conectado.
 
 O input aceita domínio/URL HTTPS, nome opcional e escopo/id opcional. O domínio é explícito: não há busca aproximada por marca, expansão para subsidiária/grupo, CT logs ou descoberta de subdomínios. Caminho/query da URL de entrada são descartados; a coleta pública lê somente a raiz. O nome é um rótulo e auxiliar de matching; `legal_identity_verified=false`. Nomes conflitantes para o mesmo domínio/escopo no lote produzem 422 antes de coleta. Relações jurídicas exigem evidência e resolução futuras.
 
@@ -90,8 +93,10 @@ rtk proxy python3 -m unittest discover -s tests -p 'test_research_v2.py' -v
 rtk proxy python3 -m compileall -q research_v2 research_api.py tests/test_research_v2.py
 ```
 
-47 testes offline passaram no checkpoint final: sessão ausente/expirada/forjada, verifier inválido, workspace, corpo/lote/quota, cache/TTL/eviction, cancelamento e limpeza de coleta, fontes desativadas e limites, matching, datas, contextos, dedup, produtos, escopo, TLS e SSRF. O resultado está em `evidence/research-v2-tests.txt`. Fixtures em `tests/test_research_v2.py` são explicitamente sintéticas. `ResearchService` rejeita evidência marcada sintética por padrão; o modo sintético é exclusivo de teste e `create_app` recusa servi-lo.
+50 testes offline passaram: os 47 anteriores mais três casos de acesso fechado, minimização de resposta e disponibilidade por workspace sem coleta. O checkpoint anterior está em `evidence/research-v2-tests.txt`; o atual, em `evidence/research-v2-access-tests.txt`. Fixtures em `tests/test_research_v2.py` são explicitamente sintéticas. `ResearchService` rejeita evidência marcada sintética por padrão; o modo sintético é exclusivo de teste e `create_app` recusa servi-lo.
+
+`tests/export_frontend_contract.py` exporta respostas reais do TestClient/FastAPI para três testes do cliente TypeScript: acesso, domínio único e lote. Usa sessão de teste e coletor vazio, somente dentro de teste, sem fornecedor/rede. Os payloads temporários não entram no frontend público. Nenhum resultado de empresa é fabricado.
 
 Nenhuma chamada a domínio de empresa, provedor pago ou API de scan foi feita nesta etapa. Não houve QA visual porque o navegador interno não estava disponível e o Chrome está vedado antes de 19h BRT. No frontend, testes/lint/TypeScript/build/export/HTTP locais já passaram; interação, hidratação, tema e responsividade continuam pendentes de QA visual permitido.
 
-Publicação permanece bloqueada por decisão de hosting/plano/domínio/auth/storage e confirmação explícita do usuário. A API antiga anônima ainda existe em produção; **a v2 não corrige o acesso da v1 publicada até um rollout autorizado**.
+O pedido de publicação do frontend em uma URL Vercel aguarda conta/projeto, finalidade de uso e plano aplicável; domínio/DNS ficaram para depois. Rollout da API v2 permanece separado e pendente de auth/storage/fontes reais autorizados. A API antiga anônima ainda existe em produção; **a v2 não corrige o acesso da v1 publicada até um rollout autorizado**.

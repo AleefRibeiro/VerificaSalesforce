@@ -110,6 +110,24 @@ def create_app(*, verifier: SessionVerifier | None = None, service: ResearchServ
     async def health():
         return {"status": "ok", "version": "2.0.0", "research_access": "requires_verified_session"}
 
+    @app.get("/v2/access")
+    async def access(request: Request):
+        principal = request.state.principal
+        available = []
+        for provider in service.providers:
+            policy = getattr(provider, "policy", None)
+            if (policy is not None and policy.enabled and principal.workspace in policy.authorized_workspaces
+                    and (not getattr(provider, "requires_key", True) or bool(policy.api_key))):
+                available.append(provider.name)
+        return {
+            "verified": True,
+            "expires_at": principal.expires_at,
+            "permissions": sorted(principal.permissions & {"research:read", "research:write"}),
+            "available_sources": available,
+            "research_enabled": "research:write" in principal.permissions and bool(available),
+            "max_batch": 5,
+        }
+
     @app.post("/v2/research", response_model=Report)
     async def research(value: TargetInput, request: Request):
         try:

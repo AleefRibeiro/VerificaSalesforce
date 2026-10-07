@@ -369,6 +369,44 @@ class SyntheticSessionVerifier:
 
 
 class APITests(unittest.TestCase):
+    def test_access_default_rejects_missing_or_forged_session(self):
+        with TestClient(create_app(clock=lambda: NOW)) as client:
+            for headers in [{}, {"Authorization": "Bearer synthetic-valid"}, {"X-Workspace": "admin", "X-Role": "admin"}]:
+                response = client.get("/v2/access", headers=headers)
+                self.assertEqual(response.status_code, 401)
+                self.assertEqual(response.headers["cache-control"], "no-store")
+
+    def test_access_reports_disabled_sources_without_identity_or_token(self):
+        with self.client() as client:
+            response = client.get("/v2/access", headers={"Authorization": "Bearer synthetic-valid"})
+            self.assertEqual(response.status_code, 200)
+            self.assertEqual(response.headers["cache-control"], "no-store")
+            self.assertEqual(response.json(), {
+                "verified": True, "expires_at": "2026-10-07T13:00:00+00:00",
+                "permissions": ["research:read", "research:write"], "available_sources": [],
+                "research_enabled": False, "max_batch": 5,
+            })
+            self.assertNotIn("synthetic-subject", response.text)
+            self.assertNotIn("synthetic-workspace", response.text)
+            self.assertNotIn("synthetic-valid", response.text)
+
+    def test_access_readiness_is_workspace_specific_and_never_collects(self):
+        class NeverCollectPublic(PublicHTMLProvider):
+            async def collect(self, *args):
+                raise AssertionError("Access checks must not collect evidence")
+        public = NeverCollectPublic(ProviderPolicy(enabled=True, authorized_workspaces=frozenset({"synthetic-workspace"})))
+        unconfigured_paid = ApolloProvider(ProviderPolicy(enabled=True, authorized_workspaces=frozenset({"synthetic-workspace"})))
+        service = ResearchService([public, unconfigured_paid], clock=lambda: NOW)
+        with TestClient(create_app(verifier=SyntheticSessionVerifier(), service=service, clock=lambda: NOW)) as client:
+            ready = client.get("/v2/access", headers={"Authorization": "Bearer synthetic-valid"}).json()
+            self.assertEqual(ready["available_sources"], ["public_html"])
+            self.assertTrue(ready["research_enabled"])
+            for token in ["synthetic-read", "synthetic-other"]:
+                access = client.get("/v2/access", headers={"Authorization": "Bearer " + token}).json()
+                self.assertFalse(access["research_enabled"])
+            other = client.get("/v2/access", headers={"Authorization": "Bearer synthetic-other"}).json()
+            self.assertEqual(other["available_sources"], [])
+
     def test_default_is_fail_closed_before_body_validation(self):
         with TestClient(create_app(clock=lambda: NOW)) as client:
             for headers in [{}, {"Authorization": "Bearer synthetic-valid"}, {"X-Workspace": "admin", "X-Role": "admin"}]:
