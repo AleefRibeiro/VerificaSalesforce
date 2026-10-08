@@ -7,13 +7,13 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import Protocol
 
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI, HTTPException, Request, Query
 from fastapi.middleware.cors import CORSMiddleware
 from urllib.parse import urlsplit
 
 from research_v2.models import BatchInput, BatchResult, Report, TargetInput, utc_now
 from research_v2.resolution import InvalidTarget
-from research_v2.service import ResearchLimit, ResearchService, ResearchUnavailable
+from research_v2.service import ResearchLimit, ResearchService, ResearchUnavailable, ResearchScope
 
 
 @dataclass(frozen=True)
@@ -101,7 +101,7 @@ class PrivateResearchMiddleware:
         return await self.app(scope, limited_receive, private_send)
 
 
-def create_app(*, verifier: SessionVerifier | None = None, service: ResearchService | None = None, clock=utc_now, allowed_origins: tuple[str, ...] = ()) -> FastAPI:
+def create_app(*, verifier: SessionVerifier | None = None, service: ResearchService | None = None, clock=utc_now, allowed_origins: tuple[str, ...] = (), isolate_users: bool = False) -> FastAPI:
     for origin in allowed_origins:
         url = urlsplit(origin)
         if (url.scheme != "https" or not url.hostname or url.netloc != url.hostname
@@ -116,6 +116,10 @@ def create_app(*, verifier: SessionVerifier | None = None, service: ResearchServ
     if allowed_origins:
         app.add_middleware(CORSMiddleware, allow_origins=list(allowed_origins), allow_credentials=False,
                            allow_methods=["GET", "POST"], allow_headers=["Authorization", "Content-Type"], max_age=600)
+
+    def owner(request):
+        principal = request.state.principal
+        return ResearchScope(principal.workspace, principal.subject) if isolate_users else principal.workspace
 
     @app.get("/health")
     async def health():
@@ -142,7 +146,7 @@ def create_app(*, verifier: SessionVerifier | None = None, service: ResearchServ
     @app.post("/v2/research", response_model=Report)
     async def research(value: TargetInput, request: Request):
         try:
-            return await service.research(request.state.principal.workspace, value)
+            return await service.research(owner(request), value)
         except InvalidTarget as exc:
             raise HTTPException(422, str(exc)) from exc
         except ResearchLimit as exc:
@@ -153,7 +157,7 @@ def create_app(*, verifier: SessionVerifier | None = None, service: ResearchServ
     @app.post("/v2/research/batch", response_model=BatchResult)
     async def batch(value: BatchInput, request: Request):
         try:
-            return await service.batch(request.state.principal.workspace, value.targets)
+            return await service.batch(owner(request), value.targets)
         except InvalidTarget as exc:
             raise HTTPException(422, str(exc)) from exc
         except ResearchLimit as exc:
@@ -164,12 +168,30 @@ def create_app(*, verifier: SessionVerifier | None = None, service: ResearchServ
     @app.get("/v2/reports/{report_id}", response_model=Report)
     async def get_report(report_id: str, request: Request):
         try:
-            report = await service.store.report(request.state.principal.workspace, report_id, clock())
+            report = await service.store.report(owner(request), report_id, clock())
         except ResearchUnavailable:
             raise HTTPException(503, "Armazenamento privado indisponível. Tente novamente mais tarde.") from None
         if report is None:
             raise HTTPException(404, "Relatório não disponível.")
         return report
+
+    if isolate_users:
+        @app.get("/v2/history")
+        async def history(request: Request, offset: int = Query(default=0, ge=0, le=127)):
+            try:
+                return await service.store.history(owner(request), offset, clock())
+            except ResearchUnavailable:
+                raise HTTPException(503, "Histórico privado indisponível. Tente novamente mais tarde.") from None
+
+        @app.get("/v2/history/{report_id}", response_model=Report)
+        async def history_report(report_id: str, request: Request):
+            try:
+                report = await service.store.history_report(owner(request), report_id, clock())
+            except ResearchUnavailable:
+                raise HTTPException(503, "Histórico privado indisponível. Tente novamente mais tarde.") from None
+            if report is None:
+                raise HTTPException(404, "Relatório não disponível.")
+            return report
 
     return app
 

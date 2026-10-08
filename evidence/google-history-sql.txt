@@ -1,0 +1,26 @@
+checked_at_utc=2026-10-08T02:17:57.495053+00:00
+{
+  "passed": true,
+  "engine": "PGlite PostgreSQL in memory",
+  "remote_connections": 0,
+  "real_users_or_keys_created": false,
+  "checks": [
+    "DDL and all seven RPC functions execute on PostgreSQL in memory",
+    "all private tables enable and force RLS",
+    "all RPCs use invoker rights and fixed search_path",
+    "anon and authenticated cannot access private tables or RPCs",
+    "session belongs to the verified user and maps to authoritative permissions",
+    "disabled membership, expired and deleted sessions deny access immediately",
+    "shared quota enforces ten targets per workspace, including cache requests",
+    "expired quota events are reclaimed independently per workspace",
+    "cache/report/history isolate two users in the SAME workspace and preserve JSON/nulls",
+    "synthetic reports, nested synthetic evidence, expired and excessive retention are rejected",
+    "expired cache remains historical with the original collection date, without renewal",
+    "30-day logical retention blocks old history before physical cleanup",
+    "128-report bound, deterministic pagination and repeated-target history are per USER",
+    "disabled membership blocks historical reads and saves even through privileged RPC",
+    "disabled workspace denies reading, quota and saving"
+  ]
+}
+
+exit_code=0

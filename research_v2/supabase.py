@@ -15,7 +15,7 @@ from uuid import UUID
 import httpx
 
 from .models import Report, utc_now
-from .service import ResearchUnavailable
+from .service import ResearchUnavailable, ResearchScope
 
 
 class SupabaseConfigurationError(ValueError):
@@ -78,7 +78,7 @@ class SupabaseHTTPTransport:
 
 
 class SupabasePrivateRPC:
-    FUNCTIONS = frozenset({"verify_research_session", "charge_research_quota", "get_cached_report", "get_private_report", "save_private_report"})
+    FUNCTIONS = frozenset({"verify_research_session", "charge_research_quota", "get_cached_report", "get_private_report", "save_private_report", "list_private_history", "get_history_report"})
 
     def __init__(self, connection: SupabaseConnection, transport: JSONTransport):
         self.connection, self.transport = connection, transport
@@ -137,16 +137,22 @@ class SupabaseSessionVerifier:
 
 
 class SupabaseResearchStore:
-    """RPCs enforce workspace predicates, TTL, 128-row bound and atomic shared quota."""
+    """Every read/cache/write is scoped to the verified user within the workspace."""
     def __init__(self, rpc):
         self.rpc = rpc
+
+    @staticmethod
+    def owner(scope):
+        if not isinstance(scope, ResearchScope):
+            raise ResearchUnavailable()
+        return {"p_workspace": canonical_uuid(scope.workspace), "p_user_id": canonical_uuid(scope.user_id)}
 
     @staticmethod
     def key_hash(key):
         return hashlib.sha256(json.dumps(key, ensure_ascii=True, separators=(",", ":"), allow_nan=False).encode()).hexdigest()
 
     @staticmethod
-    def validated(value, now):
+    def validated(value, now, *, historical=False):
         if value is None:
             return None
         try:
@@ -155,7 +161,8 @@ class SupabaseResearchStore:
             if (report.synthetic or any(e.synthetic for e in report.evidence)
                     or any(e.synthetic for source in report.sources for e in source.evidence)
                     or report.checked_at.tzinfo is None or report.expires_at.tzinfo is None
-                    or report.expires_at <= now):
+                    or report.expires_at <= report.checked_at or report.checked_at > now
+                    or (not historical and report.expires_at <= now)):
                 raise ValueError()
             return report
         except Exception:
@@ -163,10 +170,10 @@ class SupabaseResearchStore:
 
     async def charge(self, workspace, count):
         try:
-            canonical_uuid(workspace)
+            owner = self.owner(workspace)
             if type(count) is not int or not 1 <= count <= 5:
                 raise ValueError()
-            result = await self.rpc.call("charge_research_quota", {"p_workspace": workspace, "p_count": count})
+            result = await self.rpc.call("charge_research_quota", {**owner, "p_count": count})
             if type(result) is not bool:
                 raise ValueError()
             return result
@@ -175,28 +182,54 @@ class SupabaseResearchStore:
 
     async def cached(self, workspace, key, now):
         try:
-            canonical_uuid(workspace)
-            return self.validated(await self.rpc.call("get_cached_report", {"p_workspace": workspace, "p_cache_key": self.key_hash(key)}), now)
+            owner = self.owner(workspace)
+            return self.validated(await self.rpc.call("get_cached_report", {**owner, "p_cache_key": self.key_hash(key)}), now)
         except Exception:
             raise ResearchUnavailable() from None
 
     async def report(self, workspace, report_id, now):
         try:
-            canonical_uuid(workspace)
+            owner = self.owner(workspace)
             canonical_uuid(report_id)
         except ValueError:
             return None
         try:
-            return self.validated(await self.rpc.call("get_private_report", {"p_workspace": workspace, "p_report_id": report_id}), now)
+            return self.validated(await self.rpc.call("get_private_report", {**owner, "p_report_id": report_id}), now)
         except Exception:
             raise ResearchUnavailable() from None
 
     async def save(self, workspace, key, report):
         try:
-            canonical_uuid(workspace)
+            owner = self.owner(workspace)
             self.validated(report.model_dump(mode="json"), report.checked_at)
-            result = await self.rpc.call("save_private_report", {"p_workspace": workspace, "p_cache_key": self.key_hash(key), "p_report": report.model_dump(mode="json")})
+            result = await self.rpc.call("save_private_report", {**owner, "p_cache_key": self.key_hash(key), "p_report": report.model_dump(mode="json")})
             if result is not True:
                 raise ValueError()
+        except Exception:
+            raise ResearchUnavailable() from None
+
+    async def history(self, scope, offset, now):
+        from .history import HistoryPage
+        try:
+            if type(offset) is not int or not 0 <= offset <= 127:
+                raise ValueError()
+            result = await self.rpc.call("list_private_history", {**self.owner(scope), "p_offset": offset})
+            page = HistoryPage.model_validate(result)
+            if page.next_offset is not None and page.next_offset != offset + 20:
+                raise ValueError()
+            if any(item.retained_until <= now or item.checked_at > now for item in page.items):
+                raise ValueError()
+            return page
+        except Exception:
+            raise ResearchUnavailable() from None
+
+    async def history_report(self, scope, report_id, now):
+        try:
+            owner = self.owner(scope)
+            canonical_uuid(report_id)
+        except ValueError:
+            return None
+        try:
+            return self.validated(await self.rpc.call("get_history_report", {**owner, "p_report_id": report_id}), now, historical=True)
         except Exception:
             raise ResearchUnavailable() from None

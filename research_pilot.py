@@ -37,7 +37,7 @@ def build_pilot(settings=PilotSettings(), *, transport=None, html_fetcher=None):
         authorized_workspaces=frozenset({settings.workspace}),
         revision="public-html-pilot-enabled-v1" if settings.public_html_enabled else "public-html-pilot-disabled-v1"), fetcher=html_fetcher)
     service = ResearchService(providers=[provider], store=store, quota=store)
-    return create_app(verifier=verifier, service=service, allowed_origins=settings.allowed_origins)
+    return create_app(verifier=verifier, service=service, allowed_origins=settings.allowed_origins, isolate_users=True)
 
 
 def settings_from_values(values):

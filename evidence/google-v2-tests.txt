@@ -1,0 +1,58 @@
+checked_at_utc=2026-10-08T02:17:55.875007+00:00
+test_access_default_rejects_missing_or_forged_session (test_research_v2.APITests.test_access_default_rejects_missing_or_forged_session) ... ok
+test_access_readiness_is_workspace_specific_and_never_collects (test_research_v2.APITests.test_access_readiness_is_workspace_specific_and_never_collects) ... ok
+test_access_reports_disabled_sources_without_identity_or_token (test_research_v2.APITests.test_access_reports_disabled_sources_without_identity_or_token) ... ok
+test_body_and_batch_limits_after_session_check (test_research_v2.APITests.test_body_and_batch_limits_after_session_check) ... ok
+test_default_is_fail_closed_before_body_validation (test_research_v2.APITests.test_default_is_fail_closed_before_body_validation) ... ok
+test_expired_unknown_and_forged_roles_cannot_write (test_research_v2.APITests.test_expired_unknown_and_forged_roles_cannot_write) ... ok
+test_malformed_verifier_result_fails_closed (test_research_v2.APITests.test_malformed_verifier_result_fails_closed) ... ok
+test_verified_api_creates_private_inconclusive_report (test_research_v2.APITests.test_verified_api_creates_private_inconclusive_report) ... ok
+test_consultancy_recruiting_for_client_is_not_self (test_research_v2.ClassificationTests.test_consultancy_recruiting_for_client_is_not_self) ... ok
+test_direct_reference_is_public_confirmation_with_limited_scope (test_research_v2.ClassificationTests.test_direct_reference_is_public_confirmation_with_limited_scope) ... ok
+test_duplicate_keeps_disqualifying_context (test_research_v2.ClassificationTests.test_duplicate_keeps_disqualifying_context) ... ok
+test_errors_and_ambiguity_are_explicit (test_research_v2.ClassificationTests.test_errors_and_ambiguity_are_explicit) ... ok
+test_marketing_is_not_sales_cloud (test_research_v2.ClassificationTests.test_marketing_is_not_sales_cloud) ... ok
+test_migrating_from_salesforce_to_another_crm_is_historical (test_research_v2.ClassificationTests.test_migrating_from_salesforce_to_another_crm_is_historical) ... ok
+test_migration_away_is_historical (test_research_v2.ClassificationTests.test_migration_away_is_historical) ... ok
+test_no_signal_is_inconclusive_not_negative (test_research_v2.ClassificationTests.test_no_signal_is_inconclusive_not_negative) ... ok
+test_old_publication_is_historical_even_when_checked_today (test_research_v2.ClassificationTests.test_old_publication_is_historical_even_when_checked_today) ... ok
+test_other_domain_is_not_transferred (test_research_v2.ClassificationTests.test_other_domain_is_not_transferred) ... ok
+test_repost_is_one_origin (test_research_v2.ClassificationTests.test_repost_is_one_origin) ... ok
+test_subsidiary_is_not_group (test_research_v2.ClassificationTests.test_subsidiary_is_not_group) ... ok
+test_syndicated_description_is_not_independent (test_research_v2.ClassificationTests.test_syndicated_description_is_not_independent) ... ok
+test_syndicated_description_normalizes_subject_domain (test_research_v2.ClassificationTests.test_syndicated_description_normalizes_subject_domain) ... ok
+test_two_independent_medium_sources_are_strong_not_confirmed (test_research_v2.ClassificationTests.test_two_independent_medium_sources_are_strong_not_confirmed) ... ok
+test_unknown_date_or_future_date_cannot_confirm (test_research_v2.ClassificationTests.test_unknown_date_or_future_date_cannot_confirm) ... ok
+test_weak_source_cannot_upgrade_single_medium (test_research_v2.ClassificationTests.test_weak_source_cannot_upgrade_single_medium) ... ok
+test_apollo_contract_dates_and_metadata_minimization (test_research_v2.ProviderTests.test_apollo_contract_dates_and_metadata_minimization) ... ok
+test_apollo_mismatch_never_remaps_domain (test_research_v2.ProviderTests.test_apollo_mismatch_never_remaps_domain) ... ok
+test_consultancy_without_attribution_stays_unknown (test_research_v2.ProviderTests.test_consultancy_without_attribution_stays_unknown) ... ok
+test_every_provider_is_disabled_without_network (test_research_v2.ProviderTests.test_every_provider_is_disabled_without_network) ... ok
+test_missing_key_is_error_without_request (test_research_v2.ProviderTests.test_missing_key_is_error_without_request) ... ok
+test_public_html_references_only_no_brand_text_inference (test_research_v2.ProviderTests.test_public_html_references_only_no_brand_text_inference) ... ok
+test_theirstack_contract_and_original_publication_date (test_research_v2.ProviderTests.test_theirstack_contract_and_original_publication_date) ... ok
+test_workspace_allowlist_prevents_paid_call (test_research_v2.ProviderTests.test_workspace_allowlist_prevents_paid_call) ... ok
+test_external_redirect_is_blocked_before_next_lookup (test_research_v2.ResolutionAndSSRFTests.test_external_redirect_is_blocked_before_next_lookup) ... ok
+test_http_redirect_is_rejected (test_research_v2.ResolutionAndSSRFTests.test_http_redirect_is_rejected) ... ok
+test_normalizes_explicit_domain_without_guessing_identity (test_research_v2.ResolutionAndSSRFTests.test_normalizes_explicit_domain_without_guessing_identity) ... ok
+test_private_dns_prevents_connection (test_research_v2.ResolutionAndSSRFTests.test_private_dns_prevents_connection) ... ok
+test_rejects_any_private_dns_answer_and_mapped_ipv6 (test_research_v2.ResolutionAndSSRFTests.test_rejects_any_private_dns_answer_and_mapped_ipv6) ... ok
+test_rejects_ip_local_credentials_http_and_ports (test_research_v2.ResolutionAndSSRFTests.test_rejects_ip_local_credentials_http_and_ports) ... ok
+test_response_body_is_bounded_and_connection_closes (test_research_v2.ResolutionAndSSRFTests.test_response_body_is_bounded_and_connection_closes) ... ok
+test_tls_verification_is_enabled (test_research_v2.ResolutionAndSSRFTests.test_tls_verification_is_enabled) ... ok
+test_vendor_url_allowlist (test_research_v2.ResolutionAndSSRFTests.test_vendor_url_allowlist) ... ok
+test_batch_and_rate_limits (test_research_v2.ServiceTests.test_batch_and_rate_limits) ... ok
+test_cache_dedup_ttl_and_workspace_isolation (test_research_v2.ServiceTests.test_cache_dedup_ttl_and_workspace_isolation) ... ok
+test_conflicting_name_is_resolved_before_collecting (test_research_v2.ServiceTests.test_conflicting_name_is_resolved_before_collecting) ... ok
+test_singleflight_cleanup_after_client_cancellation (test_research_v2.ServiceTests.test_singleflight_cleanup_after_client_cancellation) ... ok
+test_store_bound_and_expiry (test_research_v2.ServiceTests.test_store_bound_and_expiry) ... ok
+test_store_evicts_oldest_report_at_capacity (test_research_v2.ServiceTests.test_store_evicts_oldest_report_at_capacity) ... ok
+test_synthetic_evidence_is_rejected_by_runtime (test_research_v2.ServiceTests.test_synthetic_evidence_is_rejected_by_runtime) ... ok
+test_synthetic_test_mode_is_labeled (test_research_v2.ServiceTests.test_synthetic_test_mode_is_labeled) ... ok
+
+----------------------------------------------------------------------
+Ran 50 tests in 0.096s
+
+OK
+
+exit_code=0

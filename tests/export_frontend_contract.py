@@ -8,9 +8,10 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from fastapi.testclient import TestClient
 from research_api import Principal, create_app
-from research_v2.models import ProviderOutcome
+from research_v2.models import ProviderOutcome, Report
+from research_v2.history import HistoryPage, HistoryEntry
 from research_v2.providers import ProviderPolicy
-from research_v2.service import ResearchService
+from research_v2.service import ResearchService, ResearchScope
 
 
 def export_contract():
@@ -49,7 +50,25 @@ def export_contract():
         batch = receipt(client.post("/v2/research/batch", headers=headers, json={"targets": [{"domain": "contract-company.example"}, {"domain": "second-contract.example"}]}))
         assert single["evidence"] == [] and single["conclusion"]["status"] == "Inconclusivo"
         assert all(report["evidence"] == [] for report in batch["reports"])
-    return {"test_only": True, "network_calls": 0, "access": access, "single": single, "batch": batch}
+    historic = Report.model_validate(single).model_copy(update={"checked_at": now - timedelta(days=2), "expires_at": now - timedelta(days=2) + timedelta(hours=1)})
+    expected_owner = ResearchScope("offline-workspace", "offline-subject")
+
+    class OfflineHistoryStore:
+        async def history(self, owner, offset, clock):
+            assert owner == expected_owner
+            return HistoryPage(items=[HistoryEntry(id=historic.id, domain=historic.target.domain, checked_at=historic.checked_at,
+                saved_at=historic.checked_at, retained_until=now + timedelta(days=28), status=historic.conclusion.status)], next_offset=None)
+
+        async def history_report(self, owner, report_id, clock):
+            assert owner == expected_owner
+            return historic if report_id == historic.id else None
+
+    count_before = collector.calls
+    with TestClient(create_app(verifier=TestOnlyVerifier(), service=ResearchService([collector], store=OfflineHistoryStore()), clock=lambda: now, isolate_users=True)) as client:
+        history = receipt(client.get("/v2/history", headers=headers))
+        history_report = receipt(client.get("/v2/history/" + historic.id, headers=headers))
+        assert collector.calls == count_before
+    return {"test_only": True, "network_calls": 0, "access": access, "single": single, "batch": batch, "history": history, "history_report": history_report}
 
 
 if __name__ == "__main__":

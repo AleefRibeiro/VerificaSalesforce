@@ -12,7 +12,7 @@ from fastapi.testclient import TestClient
 from research_api import Principal, create_app
 from research_pilot import PilotSettings, build_pilot, settings_from_values
 from research_v2.models import TargetInput
-from research_v2.service import ResearchService, ResearchUnavailable
+from research_v2.service import ResearchService, ResearchUnavailable, ResearchScope
 from research_v2.supabase import (SupabaseConfigurationError, SupabaseConnection, SupabaseHTTPTransport,
     SupabasePrivateRPC, SupabaseResearchStore, SupabaseSessionVerifier)
 
@@ -22,6 +22,7 @@ OTHER_USER = "00000000-0000-4000-8000-000000000002"
 WORKSPACE = "00000000-0000-4000-8000-000000000003"
 OTHER_WORKSPACE = "00000000-0000-4000-8000-000000000004"
 SESSION = "00000000-0000-4000-8000-000000000005"
+OWNER = ResearchScope(WORKSPACE, USER)
 CONNECTION = SupabaseConnection("a" * 20, "sb_publishable_" + "offline_fixture_" * 2, "sb_secret_" + "offline_fixture_" * 2)
 ORIGIN = "https://averon-tools.vercel.app"
 
@@ -125,14 +126,14 @@ class StoreTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_report_roundtrip_preserves_sources_and_nullable_dates(self):
         report = await self.report_fixture()
-        await self.store.save(WORKSPACE, ("offline-key",), report)
+        await self.store.save(OWNER, ("offline-key",), report)
         self.transport.results["get_private_report"] = report.model_dump(mode="json")
-        restored = await self.store.report(WORKSPACE, report.id, NOW)
+        restored = await self.store.report(OWNER, report.id, NOW)
         self.assertEqual(restored, report)
         self.assertEqual(self.transport.calls[-1][3]["p_workspace"], WORKSPACE)
 
     async def test_invalid_id_returns_no_report_without_request(self):
-        self.assertIsNone(await self.store.report(WORKSPACE, "../other", NOW))
+        self.assertIsNone(await self.store.report(OWNER, "../other", NOW))
         self.assertEqual(self.transport.calls, [])
 
     async def test_expired_or_synthetic_storage_payload_fails_closed(self):
@@ -140,19 +141,19 @@ class StoreTests(unittest.IsolatedAsyncioTestCase):
         for changes in [{"expires_at": (NOW - timedelta(seconds=1)).isoformat()}, {"synthetic": True}]:
             self.transport.results["get_private_report"] = report.model_dump(mode="json") | changes
             with self.assertRaises(ResearchUnavailable):
-                await self.store.report(WORKSPACE, report.id, NOW)
+                await self.store.report(OWNER, report.id, NOW)
 
     async def test_quota_has_no_memory_fallback_on_bad_rpc_response(self):
         self.transport.results["charge_research_quota"] = "true"
         with self.assertRaises(ResearchUnavailable):
-            await self.store.charge(WORKSPACE, 1)
+            await self.store.charge(OWNER, 1)
 
     async def test_quota_denial_prevents_collection(self):
         self.transport.results["charge_research_quota"] = False
         service = ResearchService(providers=[], store=self.store, quota=self.store, clock=lambda: NOW)
         from research_v2.service import ResearchLimit
         with self.assertRaises(ResearchLimit):
-            await service.research(WORKSPACE, TargetInput(domain="offline-company.example"))
+            await service.research(OWNER, TargetInput(domain="offline-company.example"))
         self.assertEqual(len(self.transport.calls), 1)
 
     async def test_cache_key_hash_is_stable_and_has_no_plaintext(self):
@@ -217,6 +218,7 @@ class APIPilotTests(unittest.TestCase):
             self.assertEqual(html.calls, ["offline-company.example"])
             saved = next(call[3] for call in fake.calls if call[1].endswith("/save_private_report"))
             self.assertEqual(saved["p_workspace"], WORKSPACE)
+            self.assertEqual(saved["p_user_id"], USER)
             self.assertEqual(saved["p_report"], report)
 
     def configured(self, fake=None, source=False):

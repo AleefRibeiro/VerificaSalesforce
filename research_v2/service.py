@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 from collections import OrderedDict, deque
+from dataclasses import dataclass
 from datetime import datetime, timedelta
 from typing import Protocol
 from uuid import uuid4
@@ -10,6 +11,13 @@ from .classification import classify, deduplicate
 from .models import BatchResult, ProviderOutcome, Report, TargetInput, utc_now
 from .providers import ApolloProvider, PublicHTMLProvider, TheirStackProvider
 from .resolution import InvalidTarget, resolve_target, target_key
+
+
+@dataclass(frozen=True)
+class ResearchScope:
+    """Server-derived owner; never accepted from research request payloads."""
+    workspace: str
+    user_id: str
 
 
 class ResearchStore(Protocol):
@@ -151,7 +159,8 @@ class ResearchService:
             outcomes = []
             for provider in self.providers:
                 try:
-                    outcome = await asyncio.wait_for(provider.collect(target, workspace, self.clock()), 12)
+                    provider_workspace = workspace.workspace if isinstance(workspace, ResearchScope) else workspace
+                    outcome = await asyncio.wait_for(provider.collect(target, provider_workspace, self.clock()), 12)
                     if outcome.provider != provider.name:
                         raise ValueError("Collector identity mismatch")
                     if any(e.synthetic for e in outcome.evidence) and not self.allow_synthetic:
