@@ -2,6 +2,8 @@
 
 Checkpoint local de 7 de outubro de 2026. Implementação separada da API publicada.
 
+Preparação posterior, em 8 de outubro: o piloto Supabase foi implementado em `research_pilot.py` e `research_v2/supabase.py`, com SQL privado, revogação/membership, armazenamento/quota e CORS. Continua fechado por padrão e sem rollout. Passaram os 50 testes v2 e 31 testes do piloto. [Configurações exatas e limites](SUPABASE_PILOT_SETUP.md). O checkpoint histórico abaixo permanece como contexto da v2.
+
 ## Repositórios e produção identificados
 
 - Site original: `/Users/alefribeiro/Documents/Projects/Averon/Averon Cloud/averon`, remoto `https://github.com/AleefRibeiro/Site-Averon.git`, base institucional `9bf48deea215ff2dc86d099453b406b1e6c59461`. Produção identificada: `https://averon.cloud/`.

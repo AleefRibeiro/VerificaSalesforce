@@ -55,12 +55,22 @@ class ResearchLimit(ValueError):
     pass
 
 
+class ResearchUnavailable(RuntimeError):
+    def __init__(self):
+        super().__init__("O armazenamento privado está temporariamente indisponível.")
+
+
+class ResearchQuota(Protocol):
+    async def charge(self, workspace: str, count: int) -> bool: ...
+
+
 class ResearchService:
-    def __init__(self, providers=None, store: ResearchStore | None = None, *, clock=utc_now, allow_synthetic=False):
+    def __init__(self, providers=None, store: ResearchStore | None = None, *, quota: ResearchQuota | None = None, clock=utc_now, allow_synthetic=False):
         self.providers = tuple(providers if providers is not None else (PublicHTMLProvider(), TheirStackProvider(), ApolloProvider()))
         if len(self.providers) > 3 or len({p.name for p in self.providers}) != len(self.providers):
             raise ValueError("At most three distinct collectors are allowed")
         self.store = store or MemoryStore()
+        self.quota = quota
         self.clock, self.allow_synthetic = clock, allow_synthetic
         self._concurrency = asyncio.Semaphore(2)
         self._active = {}
@@ -99,7 +109,10 @@ class ResearchService:
                 raise InvalidTarget("Um mesmo domínio/escopo recebeu nomes conflitantes no lote.")
             names[key] = target.company_name
         unique = {target_key(target): target for target in targets}
-        self._charge(workspace, len(unique))
+        if self.quota is None:
+            self._charge(workspace, len(unique))
+        elif not await self.quota.charge(workspace, len(unique)):
+            raise ResearchLimit("Máximo de 10 alvos por minuto por workspace.")
         reports = {}
         for key, target in unique.items():
             reports[key] = await self._research(workspace, target)

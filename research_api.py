@@ -8,10 +8,12 @@ from datetime import datetime
 from typing import Protocol
 
 from fastapi import FastAPI, HTTPException, Request
+from fastapi.middleware.cors import CORSMiddleware
+from urllib.parse import urlsplit
 
 from research_v2.models import BatchInput, BatchResult, Report, TargetInput, utc_now
 from research_v2.resolution import InvalidTarget
-from research_v2.service import ResearchLimit, ResearchService
+from research_v2.service import ResearchLimit, ResearchService, ResearchUnavailable
 
 
 @dataclass(frozen=True)
@@ -99,12 +101,21 @@ class PrivateResearchMiddleware:
         return await self.app(scope, limited_receive, private_send)
 
 
-def create_app(*, verifier: SessionVerifier | None = None, service: ResearchService | None = None, clock=utc_now) -> FastAPI:
+def create_app(*, verifier: SessionVerifier | None = None, service: ResearchService | None = None, clock=utc_now, allowed_origins: tuple[str, ...] = ()) -> FastAPI:
+    for origin in allowed_origins:
+        url = urlsplit(origin)
+        if (url.scheme != "https" or not url.hostname or url.netloc != url.hostname
+                or url.path or url.query or url.fragment or "*" in origin):
+            raise ValueError("CORS requires exact HTTPS origins without ports or paths.")
     service = service or ResearchService(clock=clock)
     if service.allow_synthetic:
         raise ValueError("An API cannot serve a service configured to allow synthetic research.")
     app = FastAPI(title="Averon Private Research API", version="2.0.0", docs_url=None, redoc_url=None, openapi_url=None)
     app.add_middleware(PrivateResearchMiddleware, verifier=verifier or DenyAllSessions(), clock=clock)
+    # Outermost: valid preflights bypass auth; actual requests still require a session.
+    if allowed_origins:
+        app.add_middleware(CORSMiddleware, allow_origins=list(allowed_origins), allow_credentials=False,
+                           allow_methods=["GET", "POST"], allow_headers=["Authorization", "Content-Type"], max_age=600)
 
     @app.get("/health")
     async def health():
@@ -136,6 +147,8 @@ def create_app(*, verifier: SessionVerifier | None = None, service: ResearchServ
             raise HTTPException(422, str(exc)) from exc
         except ResearchLimit as exc:
             raise HTTPException(429, str(exc)) from exc
+        except ResearchUnavailable:
+            raise HTTPException(503, "Armazenamento privado indisponível. Tente novamente mais tarde.") from None
 
     @app.post("/v2/research/batch", response_model=BatchResult)
     async def batch(value: BatchInput, request: Request):
@@ -145,10 +158,15 @@ def create_app(*, verifier: SessionVerifier | None = None, service: ResearchServ
             raise HTTPException(422, str(exc)) from exc
         except ResearchLimit as exc:
             raise HTTPException(429, str(exc)) from exc
+        except ResearchUnavailable:
+            raise HTTPException(503, "Armazenamento privado indisponível. Tente novamente mais tarde.") from None
 
     @app.get("/v2/reports/{report_id}", response_model=Report)
     async def get_report(report_id: str, request: Request):
-        report = await service.store.report(request.state.principal.workspace, report_id, clock())
+        try:
+            report = await service.store.report(request.state.principal.workspace, report_id, clock())
+        except ResearchUnavailable:
+            raise HTTPException(503, "Armazenamento privado indisponível. Tente novamente mais tarde.") from None
         if report is None:
             raise HTTPException(404, "Relatório não disponível.")
         return report

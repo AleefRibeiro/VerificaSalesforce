@@ -1,0 +1,39 @@
+checked_at_utc=2026-10-08T01:02:28.933623+00:00
+test_default_entrypoint_is_closed_and_legacy_scan_is_absent (test_supabase_pilot.APIPilotTests.test_default_entrypoint_is_closed_and_legacy_scan_is_absent) ... ok
+test_disabled_config_does_not_read_secret_values (test_supabase_pilot.APIPilotTests.test_disabled_config_does_not_read_secret_values) ... ok
+test_full_pilot_with_mock_html_auth_and_storage_only (test_supabase_pilot.APIPilotTests.test_full_pilot_with_mock_html_auth_and_storage_only) ... ok
+test_incomplete_pilot_settings_fail_closed (test_supabase_pilot.APIPilotTests.test_incomplete_pilot_settings_fail_closed) ... ok
+test_missing_or_invalid_config_raises_only_fixed_error (test_supabase_pilot.APIPilotTests.test_missing_or_invalid_config_raises_only_fixed_error) ... ok
+test_preflight_is_allowed_only_for_exact_origin_and_headers (test_supabase_pilot.APIPilotTests.test_preflight_is_allowed_only_for_exact_origin_and_headers) ... ok
+test_read_only_session_cannot_collect_and_discloses_no_identity (test_supabase_pilot.APIPilotTests.test_read_only_session_cannot_collect_and_discloses_no_identity) ... ok
+test_sources_remain_disabled_without_explicit_source_flag (test_supabase_pilot.APIPilotTests.test_sources_remain_disabled_without_explicit_source_flag) ... ok
+test_storage_outage_returns_fixed_503_without_fallback (test_supabase_pilot.APIPilotTests.test_storage_outage_returns_fixed_503_without_fallback) ... ok
+test_unauthenticated_actual_request_is_still_denied_with_cors (test_supabase_pilot.APIPilotTests.test_unauthenticated_actual_request_is_still_denied_with_cors) ... ok
+test_wildcard_or_insecure_cors_config_is_rejected (test_supabase_pilot.APIPilotTests.test_wildcard_or_insecure_cors_config_is_rejected) ... ok
+test_mock_http_json_roundtrip (test_supabase_pilot.HTTPAndAPITests.test_mock_http_json_roundtrip) ... ok
+test_redirect_and_non_json_responses_are_rejected (test_supabase_pilot.HTTPAndAPITests.test_redirect_and_non_json_responses_are_rejected) ... ok
+test_supabase_http_concurrency_is_bounded_per_process (test_supabase_pilot.HTTPAndAPITests.test_supabase_http_concurrency_is_bounded_per_process) ... ok
+test_wrong_origin_and_oversized_json_are_rejected (test_supabase_pilot.HTTPAndAPITests.test_wrong_origin_and_oversized_json_are_rejected) ... ok
+test_cache_key_hash_is_stable_and_has_no_plaintext (test_supabase_pilot.StoreTests.test_cache_key_hash_is_stable_and_has_no_plaintext) ... ok
+test_expired_or_synthetic_storage_payload_fails_closed (test_supabase_pilot.StoreTests.test_expired_or_synthetic_storage_payload_fails_closed) ... ok
+test_invalid_id_returns_no_report_without_request (test_supabase_pilot.StoreTests.test_invalid_id_returns_no_report_without_request) ... ok
+test_quota_denial_prevents_collection (test_supabase_pilot.StoreTests.test_quota_denial_prevents_collection) ... ok
+test_quota_has_no_memory_fallback_on_bad_rpc_response (test_supabase_pilot.StoreTests.test_quota_has_no_memory_fallback_on_bad_rpc_response) ... ok
+test_report_roundtrip_preserves_sources_and_nullable_dates (test_supabase_pilot.StoreTests.test_report_roundtrip_preserves_sources_and_nullable_dates) ... ok
+test_anonymous_or_unconfirmed_identity_is_denied (test_supabase_pilot.VerifierTests.test_anonymous_or_unconfirmed_identity_is_denied) ... ok
+test_expired_or_invalid_expiry_is_denied (test_supabase_pilot.VerifierTests.test_expired_or_invalid_expiry_is_denied) ... ok
+test_invalid_signature_or_auth_failure_never_reaches_membership (test_supabase_pilot.VerifierTests.test_invalid_signature_or_auth_failure_never_reaches_membership) ... ok
+test_keys_are_absent_from_connection_repr_and_config_errors (test_supabase_pilot.VerifierTests.test_keys_are_absent_from_connection_repr_and_config_errors) ... ok
+test_missing_or_invalid_session_id_is_denied (test_supabase_pilot.VerifierTests.test_missing_or_invalid_session_id_is_denied) ... ok
+test_other_workspace_or_unknown_permission_is_denied (test_supabase_pilot.VerifierTests.test_other_workspace_or_unknown_permission_is_denied) ... ok
+test_revoked_session_or_disabled_membership_is_denied (test_supabase_pilot.VerifierTests.test_revoked_session_or_disabled_membership_is_denied) ... ok
+test_user_mismatch_is_denied (test_supabase_pilot.VerifierTests.test_user_mismatch_is_denied) ... ok
+test_verified_user_and_live_session_use_authoritative_membership (test_supabase_pilot.VerifierTests.test_verified_user_and_live_session_use_authoritative_membership) ... ok
+test_wrong_issuer_or_audience_is_denied (test_supabase_pilot.VerifierTests.test_wrong_issuer_or_audience_is_denied) ... ok
+
+----------------------------------------------------------------------
+Ran 31 tests in 0.084s
+
+OK
+
+exit_code=0

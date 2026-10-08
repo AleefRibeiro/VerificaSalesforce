@@ -1,0 +1,60 @@
+{
+  "recorded_at_utc": "2026-10-08T01:02:29.457296+00:00",
+  "counts": {
+    "frontend_tests": 37,
+    "backend_v2_tests": 50,
+    "backend_pilot_tests": 31,
+    "api_contract_tests": 3,
+    "postgres_sql_checks": 13,
+    "browser_checks": 15,
+    "browser_screenshots": 14
+  },
+  "dependencies": [
+    {
+      "name": "@supabase/supabase-js",
+      "version": "2.117.3",
+      "integrity": "sha512-K+f8PimXDunPWQ63CKRXaF5pbVPJxmfw5ryAnh0s9S9PkwcuqBjiSpIaqpF7KLDljeYwXIL85ST8QxaO0+XuvA==",
+      "registry_metadata": "https://registry.npmjs.org/@supabase/supabase-js/2.117.3",
+      "dev_only": false
+    },
+    {
+      "name": "@electric-sql/pglite",
+      "version": "0.5.8",
+      "integrity": "sha512-n9tsbUOhwx2epK1V0ZG9Ar4SHWUju04dhmzZXiSBXwBoleOvIfals33NAaWgagQVAL4Rbvx/Ptsu3P+pA09f6Q==",
+      "registry_metadata": "https://registry.npmjs.org/@electric-sql/pglite/0.5.8",
+      "dev_only": true
+    }
+  ],
+  "code_sha256": {
+    "scanner-research-worktree/research_pilot.py": "9f94b9c09990c0cca43caac1c7004079ff431f5c6a7e07680f9ac77aff6af568",
+    "scanner-research-worktree/research_api.py": "5d6d524b8a27e7e6796a29834c8fed46db1ceb75814863b014f637310a17ca26",
+    "scanner-research-worktree/research_v2/supabase.py": "2f8d7ad1748c54e611bbcfc774822d7561d631565fa57af02086ea9828135ef6",
+    "scanner-research-worktree/research_v2/service.py": "a3e713bd1f843a544bf5c524a968d693e1b29ff45718756a5a6beaa96085b17f",
+    "scanner-research-worktree/sql/averon_private_pilot.sql": "04e0e6067b24717a911acbe947e1da1e865005496812c2be602af343d61c1b93",
+    "averon-tools-worktree/src/lib/research/supabase-session.ts": "f8baea812bffb29bbe92582d1b7da9cd2bbab8e68d74fc7e9b4b5def7b878a6d",
+    "averon-tools-worktree/src/lib/research/supabase-runtime.ts": "83d8a2c463dcdb0daa705e35ee7b2b64d3f59d35b741b97892af8eee48171797",
+    "averon-tools-worktree/src/components/ResearchSignIn.tsx": "24d3a77f69376de8b85314c070afead3ac500395738b43e76e0881cae554dee0",
+    "averon-tools-worktree/src/components/ResearchWorkspace.tsx": "e6ca0000584f650f218b0ec9c0b9d921761b229c94b3bbf167bff27251b5e260",
+    "averon-tools-worktree/scripts/check-pilot-config.mjs": "0f8a57ce2e386be1ecb3a10b1b75704814b07ac769bb49988fb0a38cf6dbad1e"
+  },
+  "remote_configuration_applied": false,
+  "supabase_averon_project_exists": false,
+  "real_users_secrets_grants_created": false,
+  "supplier_credits_consumed": false,
+  "new_deployment_or_push_or_merge": false,
+  "published_url_unchanged": "https://averon-tools.vercel.app",
+  "published_source_commit_unchanged": "d738134f13670515126e663bad6ec6a095b619db",
+  "default_pilot_configured": false,
+  "default_sources_enabled": false,
+  "real_auth_or_provider_benchmark_tested": false,
+  "sql_executed_only_in_memory_with_synthetic_fixtures": true,
+  "not_yet_verified": [
+    "Dedicated Supabase project/Free slot/cost",
+    "Hosted Auth/revocation/PostgREST privileges and latency",
+    "Configured sign-in UI in browser",
+    "PostgreSQL concurrency using multiple connections",
+    "Real approved source benchmark",
+    "Safari on iPhone",
+    "Railway incremental usage/cost"
+  ]
+}

@@ -1,0 +1,24 @@
+checked_at_utc=2026-10-08T00:47:25.327239+00:00
+{
+  "passed": true,
+  "engine": "PGlite PostgreSQL in memory",
+  "remote_connections": 0,
+  "real_users_or_keys_created": false,
+  "checks": [
+    "DDL and all five RPC functions execute on PostgreSQL in memory",
+    "all private tables enable and force RLS",
+    "all RPCs use invoker rights and fixed search_path",
+    "anon and authenticated cannot access private tables or RPCs",
+    "session belongs to the verified user and maps to authoritative permissions",
+    "disabled membership, expired and deleted sessions deny access immediately",
+    "shared quota enforces ten targets per workspace, including cache requests",
+    "expired quota events are reclaimed independently per workspace",
+    "report/cache roundtrip preserves JSON/nulls and isolates workspaces",
+    "synthetic reports, nested synthetic evidence, expired and excessive retention are rejected",
+    "expired reports are inaccessible before physical cleanup",
+    "opportunistic cleanup enforces the 128-report bound per workspace",
+    "disabled workspace denies reading, quota and saving"
+  ]
+}
+
+exit_code=0
