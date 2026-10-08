@@ -1,5 +1,10 @@
 # Catálogo Salesforce e configuração do AveronTools
 
+**Estado atualizado:** Alef autorizou as quatro etapas de configuração em 8 de
+outubro de 2026. Consulte [ACTIVATION_STATUS.md](ACTIVATION_STATUS.md) para as
+alterações remotas confirmadas, a chamada de migration cancelada e as informações
+que faltam. As seções de preparação abaixo documentam o checkpoint anterior.
+
 O catálogo público contém somente informações aprovadas pelo Alef. Pesquisas novas ficam no histórico privado de quem as solicitou. Contribuições ficam pendentes até revisão; não há importação automática de relatórios privados nem dados reais ou empresas de demonstração no produto.
 
 ## Projeto confirmado
