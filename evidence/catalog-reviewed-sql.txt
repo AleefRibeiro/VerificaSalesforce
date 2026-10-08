@@ -1,0 +1,26 @@
+checked_at_utc=2026-10-08T03:01:59.958548+00:00
+{
+  "passed": true,
+  "checked_at_utc": "2026-10-08T03:02:01.541Z",
+  "engine": "PGlite PostgreSQL in memory",
+  "remote_connections": 0,
+  "real_users_or_grants_created": false,
+  "checks": [
+    "base and additive catalog DDL execute on PostgreSQL without extensions or seeded real data",
+    "one authoritative moderator only; empty catalog and no moderator automatically seeded",
+    "all seven tables force RLS; all twelve invoker RPCs deny browser roles and fix search_path",
+    "only singleton moderator UUID receives permission through a live authoritative session",
+    "pending contributions stay private; same-workspace friend cannot read or moderate them",
+    "duplicate pending contributions and repeat decisions cannot duplicate publication",
+    "approved public DTO contains only reviewed fields; source dates, accent prefix, literals and workspace scoping hold",
+    "contestation preserves previous sources; unknown publication date stays null and cannot confirm use",
+    "rejection has an audit note and never changes the public catalog",
+    "confirmed use requires a dated confirmation and explicit direct-evidence review",
+    "private reports remain isolated history; no catalog or contribution import path exists",
+    "20-row public pagination includes one source per company; full detail preserves 20 and worst Unicode payload fits 1 MiB",
+    "long Unicode source URLs remain valid and deduplicate through bounded SHA-256 index keys",
+    "revoked moderator membership blocks future decisions through the SQL RPC"
+  ]
+}
+
+exit_code=0

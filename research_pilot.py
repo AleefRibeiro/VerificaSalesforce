@@ -6,6 +6,7 @@ import os
 from research_api import create_app
 from research_v2.providers import ProviderPolicy, PublicHTMLProvider
 from research_v2.service import ResearchService
+from research_v2.catalog import SupabaseCatalogStore
 from research_v2.supabase import SupabaseConnection, SupabaseHTTPTransport, SupabasePrivateRPC, SupabaseResearchStore, SupabaseSessionVerifier
 
 
@@ -37,7 +38,8 @@ def build_pilot(settings=PilotSettings(), *, transport=None, html_fetcher=None):
         authorized_workspaces=frozenset({settings.workspace}),
         revision="public-html-pilot-enabled-v1" if settings.public_html_enabled else "public-html-pilot-disabled-v1"), fetcher=html_fetcher)
     service = ResearchService(providers=[provider], store=store, quota=store)
-    return create_app(verifier=verifier, service=service, allowed_origins=settings.allowed_origins, isolate_users=True)
+    return create_app(verifier=verifier, service=service, allowed_origins=settings.allowed_origins,
+                      isolate_users=True, require_google=True, catalog=SupabaseCatalogStore(rpc, settings.workspace))
 
 
 def settings_from_values(values):

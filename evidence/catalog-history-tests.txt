@@ -1,0 +1,17 @@
+checked_at_utc=2026-10-08T03:01:58.947389+00:00
+test_client_cannot_set_history_owner_in_request_body (test_private_history.HistoryAPITests.test_client_cannot_set_history_owner_in_request_body) ... ok
+test_history_read_never_collects_html_or_charges_quota (test_private_history.HistoryAPITests.test_history_read_never_collects_html_or_charges_quota) ... ok
+test_history_requires_auth_has_no_store_headers_and_bounds_offset (test_private_history.HistoryAPITests.test_history_requires_auth_has_no_store_headers_and_bounds_offset) ... ok
+test_revoked_membership_denies_history_without_storage_query (test_private_history.HistoryAPITests.test_revoked_membership_denies_history_without_storage_query) ... ok
+test_same_workspace_users_cannot_share_cache_report_or_history (test_private_history.HistoryAPITests.test_same_workspace_users_cannot_share_cache_report_or_history) ... ok
+test_concurrent_users_are_not_coalesced_into_one_report (test_private_history.HistoryStoreTests.test_concurrent_users_are_not_coalesced_into_one_report) ... ok
+test_history_allows_expired_cache_without_renewing_original_date (test_private_history.HistoryStoreTests.test_history_allows_expired_cache_without_renewing_original_date) ... ok
+test_plain_workspace_without_verified_owner_is_rejected (test_private_history.HistoryStoreTests.test_plain_workspace_without_verified_owner_is_rejected) ... ok
+test_synthetic_history_and_invalid_pagination_fail_closed (test_private_history.HistoryStoreTests.test_synthetic_history_and_invalid_pagination_fail_closed) ... ok
+
+----------------------------------------------------------------------
+Ran 9 tests in 0.060s
+
+OK
+
+exit_code=0

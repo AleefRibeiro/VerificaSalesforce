@@ -1,0 +1,25 @@
+checked_at_utc=2026-10-08T03:01:59.352154+00:00
+test_anonymous_search_empty_never_collects_or_charges (test_reviewed_catalog.CatalogAPITests.test_anonymous_search_empty_never_collects_or_charges) ... ok
+test_approve_makes_only_reviewed_allowlisted_fields_public_and_searchable (test_reviewed_catalog.CatalogAPITests.test_approve_makes_only_reviewed_allowlisted_fields_public_and_searchable) ... ok
+test_confirmed_requires_direct_dated_confirmation (test_reviewed_catalog.CatalogAPITests.test_confirmed_requires_direct_dated_confirmation) ... ok
+test_contestation_approval_preserves_sources_and_qualifies_unconfirmed (test_reviewed_catalog.CatalogAPITests.test_contestation_approval_preserves_sources_and_qualifies_unconfirmed) ... ok
+test_duplicate_pending_does_not_create_duplicates (test_reviewed_catalog.CatalogAPITests.test_duplicate_pending_does_not_create_duplicates) ... ok
+test_existing_company_blocks_single_and_batch_before_quota_or_collection (test_reviewed_catalog.CatalogAPITests.test_existing_company_blocks_single_and_batch_before_quota_or_collection) ... ok
+test_google_gate_rejects_password_before_scan_or_contribution (test_reviewed_catalog.CatalogAPITests.test_google_gate_rejects_password_before_scan_or_contribution) ... ok
+test_new_scan_stays_private_and_does_not_publish_or_submit (test_reviewed_catalog.CatalogAPITests.test_new_scan_stays_private_and_does_not_publish_or_submit) ... ok
+test_pending_is_private_and_own_contributions_isolate_users (test_reviewed_catalog.CatalogAPITests.test_pending_is_private_and_own_contributions_isolate_users) ... ok
+test_public_cors_preflight_and_invalid_paging (test_reviewed_catalog.CatalogAPITests.test_public_cors_preflight_and_invalid_paging) ... ok
+test_rejection_never_changes_existing_public_record (test_reviewed_catalog.CatalogAPITests.test_rejection_never_changes_existing_public_record) ... ok
+test_required_reason_source_and_no_client_owner_or_admin (test_reviewed_catalog.CatalogAPITests.test_required_reason_source_and_no_client_owner_or_admin) ... ok
+test_unconfigured_catalog_returns_unavailable_not_fake_empty_results (test_reviewed_catalog.CatalogAPITests.test_unconfigured_catalog_returns_unavailable_not_fake_empty_results) ... ok
+test_user_cannot_list_or_moderate_even_with_spoofed_role (test_reviewed_catalog.CatalogAPITests.test_user_cannot_list_or_moderate_even_with_spoofed_role) ... ok
+test_google_identity_and_verified_amr_are_both_required (test_reviewed_catalog.CatalogVerifierTests.test_google_identity_and_verified_amr_are_both_required) ... ok
+test_moderation_permission_comes_from_authoritative_rpc_only (test_reviewed_catalog.CatalogVerifierTests.test_moderation_permission_comes_from_authoritative_rpc_only) ... ok
+test_store_passes_owner_scope_and_never_reads_private_reports (test_reviewed_catalog.CatalogVerifierTests.test_store_passes_owner_scope_and_never_reads_private_reports) ... ok
+
+----------------------------------------------------------------------
+Ran 17 tests in 0.198s
+
+OK
+
+exit_code=0

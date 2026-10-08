@@ -30,6 +30,7 @@ ORIGIN = "https://averon-tools.vercel.app"
 def token(**changes):
     claims = {"sub": USER, "session_id": SESSION, "iss": CONNECTION.origin + "/auth/v1",
               "aud": "authenticated", "exp": int((NOW + timedelta(minutes=30)).timestamp()),
+              "amr": [{"method": "oauth", "timestamp": int(NOW.timestamp())}],
               "user_metadata": {"workspace": OTHER_WORKSPACE, "permissions": ["admin"]}}
     claims.update(changes)
     encoded = base64.urlsafe_b64encode(json.dumps(claims).encode()).decode().rstrip("=")
@@ -40,9 +41,9 @@ def token(**changes):
 class FakeTransport:
     def __init__(self):
         self.calls = []
-        self.user = {"id": USER, "is_anonymous": False, "email_confirmed_at": NOW.isoformat()}
+        self.user = {"id": USER, "is_anonymous": False, "email_confirmed_at": NOW.isoformat(), "identities": [{"provider": "google"}]}
         self.membership = {"workspace": WORKSPACE, "permissions": ["research:read", "research:write"]}
-        self.results = {"charge_research_quota": True, "get_cached_report": None, "get_private_report": None, "save_private_report": True}
+        self.results = {"charge_research_quota": True, "get_cached_report": None, "get_private_report": None, "save_private_report": True, "get_public_company": None}
         self.fail_auth = False
 
     async def request(self, method, url, *, headers, body=None):

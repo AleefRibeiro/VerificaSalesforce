@@ -78,7 +78,7 @@ class SupabaseHTTPTransport:
 
 
 class SupabasePrivateRPC:
-    FUNCTIONS = frozenset({"verify_research_session", "charge_research_quota", "get_cached_report", "get_private_report", "save_private_report", "list_private_history", "get_history_report"})
+    FUNCTIONS = frozenset({"verify_research_session", "charge_research_quota", "get_cached_report", "get_private_report", "save_private_report", "list_private_history", "get_history_report", "search_public_catalog", "get_public_company", "submit_catalog_contribution", "list_catalog_contributions", "review_catalog_contribution"})
 
     def __init__(self, connection: SupabaseConnection, transport: JSONTransport):
         self.connection, self.transport = connection, transport
@@ -120,6 +120,15 @@ class SupabaseSessionVerifier:
             expires = datetime.fromtimestamp(exp, timezone.utc)
             if expires <= self.clock():
                 return None
+            # Auth has verified this exact JWT. AMR establishes OAuth (not password/invite),
+            # while live Auth identities establish Google as the only linked OAuth provider.
+            # No user_metadata, UI flag or client-decoded role authorizes an operation.
+            amr = claims.get("amr", [])
+            identities = user.get("identities", [])
+            providers = {i.get("provider") for i in identities if isinstance(i, dict)}
+            oauth = (isinstance(amr, list) and any(isinstance(m, dict) and m.get("method") == "oauth" for m in amr)
+                     and not any(isinstance(m, dict) and m.get("method") in {"password", "invite", "otp", "magiclink", "recovery", "sso/saml"} for m in amr))
+            google = oauth and "google" in providers and providers <= {"google", "email"}
             membership = await self.rpc.call("verify_research_session", {"p_user_id": subject, "p_session_id": session_id})
             if not isinstance(membership, dict):
                 return None
@@ -127,11 +136,11 @@ class SupabaseSessionVerifier:
             if self.allowed_workspace is not None and workspace != self.allowed_workspace:
                 return None
             permissions = membership["permissions"]
-            if not isinstance(permissions, list) or not permissions or any(p not in {"research:read", "research:write"} for p in permissions):
+            if not isinstance(permissions, list) or not permissions or any(p not in {"research:read", "research:write", "catalog:moderate"} for p in permissions):
                 return None
             if "research:read" not in permissions:
                 return None
-            return Principal(subject, workspace, frozenset(permissions), expires)
+            return Principal(subject, workspace, frozenset(permissions), expires, "google" if google else None)
         except Exception:
             return None
 

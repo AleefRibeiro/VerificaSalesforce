@@ -25,8 +25,9 @@ class OwnerTransport:
         if url.endswith("/auth/v1/user"):
             encoded = headers["Authorization"].split(".")[1]
             subject = json.loads(base64.urlsafe_b64decode(encoded + "=" * (-len(encoded) % 4)))["sub"]
-            return {"id": subject, "is_anonymous": False, "email_confirmed_at": NOW.isoformat()}
+            return {"id": subject, "is_anonymous": False, "email_confirmed_at": NOW.isoformat(), "identities": [{"provider": "google"}]}
         fn = url.rsplit("/", 1)[1]
+        if fn == "get_public_company": return None
         if fn == "verify_research_session":
             return {"workspace": WORKSPACE, "permissions": ["research:read", "research:write"]} if body["p_user_id"] in self.active and body["p_session_id"] == SESSION else None
         owner = (body["p_workspace"], body["p_user_id"])

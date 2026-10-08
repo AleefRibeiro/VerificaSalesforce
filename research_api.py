@@ -14,6 +14,8 @@ from urllib.parse import urlsplit
 from research_v2.models import BatchInput, BatchResult, Report, TargetInput, utc_now
 from research_v2.resolution import InvalidTarget
 from research_v2.service import ResearchLimit, ResearchService, ResearchUnavailable, ResearchScope
+from research_v2.catalog import (UnavailableCatalog, CatalogConflict, ContributionInput, ReviewInput,
+                                 CatalogPage, Company, Contribution, ContributionPage)
 
 
 @dataclass(frozen=True)
@@ -22,6 +24,7 @@ class Principal:
     workspace: str
     permissions: frozenset[str]
     expires_at: datetime
+    identity_provider: str | None = None
 
 
 class SessionVerifier(Protocol):
@@ -35,8 +38,9 @@ class DenyAllSessions:
 
 
 class PrivateResearchMiddleware:
-    def __init__(self, app, verifier, clock=utc_now, max_body_bytes=32768):
+    def __init__(self, app, verifier, clock=utc_now, max_body_bytes=32768, require_google=False):
         self.app, self.verifier, self.clock, self.max_body_bytes = app, verifier, clock, max_body_bytes
+        self.require_google = require_google
 
     async def reject(self, send, status, message):
         body = json.dumps({"detail": message}).encode()
@@ -64,6 +68,8 @@ class PrivateResearchMiddleware:
             valid = False
         if not valid:
             return await self.reject(send, 401, "Sessão verificada necessária.")
+        if self.require_google and principal.identity_provider != "google":
+            return await self.reject(send, 403, "Login Google validado necessário.")
         required = "research:write" if scope["method"] == "POST" else "research:read"
         if required not in principal.permissions:
             return await self.reject(send, 403, "Permissão de pesquisa necessária.")
@@ -101,7 +107,7 @@ class PrivateResearchMiddleware:
         return await self.app(scope, limited_receive, private_send)
 
 
-def create_app(*, verifier: SessionVerifier | None = None, service: ResearchService | None = None, clock=utc_now, allowed_origins: tuple[str, ...] = (), isolate_users: bool = False) -> FastAPI:
+def create_app(*, verifier: SessionVerifier | None = None, service: ResearchService | None = None, clock=utc_now, allowed_origins: tuple[str, ...] = (), isolate_users: bool = False, catalog=None, require_google: bool = False) -> FastAPI:
     for origin in allowed_origins:
         url = urlsplit(origin)
         if (url.scheme != "https" or not url.hostname or url.netloc != url.hostname
@@ -111,7 +117,7 @@ def create_app(*, verifier: SessionVerifier | None = None, service: ResearchServ
     if service.allow_synthetic:
         raise ValueError("An API cannot serve a service configured to allow synthetic research.")
     app = FastAPI(title="Averon Private Research API", version="2.0.0", docs_url=None, redoc_url=None, openapi_url=None)
-    app.add_middleware(PrivateResearchMiddleware, verifier=verifier or DenyAllSessions(), clock=clock)
+    app.add_middleware(PrivateResearchMiddleware, verifier=verifier or DenyAllSessions(), clock=clock, require_google=require_google)
     # Outermost: valid preflights bypass auth; actual requests still require a session.
     if allowed_origins:
         app.add_middleware(CORSMiddleware, allow_origins=list(allowed_origins), allow_credentials=False,
@@ -146,6 +152,11 @@ def create_app(*, verifier: SessionVerifier | None = None, service: ResearchServ
     @app.post("/v2/research", response_model=Report)
     async def research(value: TargetInput, request: Request):
         try:
+            if require_google:
+                from research_v2.resolution import resolve_target
+                existing = await catalog.detail(resolve_target(value).domain)
+                if existing is not None:
+                    raise HTTPException(409, "Já existe um registro aprovado no catálogo. Consulte suas fontes antes de solicitar nova coleta.")
             return await service.research(owner(request), value)
         except InvalidTarget as exc:
             raise HTTPException(422, str(exc)) from exc
@@ -157,6 +168,11 @@ def create_app(*, verifier: SessionVerifier | None = None, service: ResearchServ
     @app.post("/v2/research/batch", response_model=BatchResult)
     async def batch(value: BatchInput, request: Request):
         try:
+            if require_google:
+                from research_v2.resolution import resolve_target
+                for target in value.targets:
+                    if await catalog.detail(resolve_target(target).domain) is not None:
+                        raise HTTPException(409, "O lote contém empresa com registro aprovado. Consulte o catálogo e revise as entradas.")
             return await service.batch(owner(request), value.targets)
         except InvalidTarget as exc:
             raise HTTPException(422, str(exc)) from exc
@@ -192,6 +208,77 @@ def create_app(*, verifier: SessionVerifier | None = None, service: ResearchServ
             if report is None:
                 raise HTTPException(404, "Relatório não disponível.")
             return report
+
+    catalog = catalog or UnavailableCatalog()
+
+    async def catalog_operation(operation):
+        try:
+            return await operation
+        except CatalogConflict as exc:
+            raise HTTPException(409, str(exc)) from None
+        except ResearchUnavailable:
+            raise HTTPException(503, "Catálogo temporariamente indisponível.") from None
+
+    @app.middleware("http")
+    async def public_catalog_headers(request, call_next):
+        response = await call_next(request)
+        if request.url.path.startswith("/catalog/"):
+            # Approval/contestation must be visible immediately; no CDN/browser snapshot.
+            response.headers["Cache-Control"] = "no-store"
+            response.headers["X-Content-Type-Options"] = "nosniff"
+        return response
+
+    @app.get("/catalog/companies", response_model=CatalogPage)
+    async def public_search(q: str = Query(default="", max_length=200), offset: int = Query(default=0, ge=0, le=10000)):
+        return await catalog_operation(catalog.search(q, offset))
+
+    @app.get("/catalog/companies/{domain}", response_model=Company)
+    async def public_detail(domain: str):
+        from research_v2.resolution import resolve_target
+        try:
+            domain = resolve_target(TargetInput(domain=domain)).domain
+        except (ValueError, InvalidTarget):
+            raise HTTPException(422, "Domínio inválido.") from None
+        company = await catalog_operation(catalog.detail(domain))
+        if company is None:
+            raise HTTPException(404, "Empresa sem registro público aprovado.")
+        return company
+
+    def catalog_owner(request, *, moderate=False):
+        principal = request.state.principal
+        if principal.identity_provider != "google":
+            raise HTTPException(403, "Login Google validado necessário.")
+        if moderate and "catalog:moderate" not in principal.permissions:
+            raise HTTPException(403, "Moderação restrita ao responsável autorizado.")
+        return ResearchScope(principal.workspace, principal.subject)
+
+    @app.get("/v2/catalog/access")
+    async def catalog_access(request: Request):
+        catalog_owner(request)
+        return {"can_contribute": "research:write" in request.state.principal.permissions,
+                "can_moderate": "catalog:moderate" in request.state.principal.permissions}
+
+    @app.post("/v2/catalog/contributions", response_model=Contribution, status_code=201)
+    async def contribution(value: ContributionInput, request: Request):
+        return await catalog_operation(catalog.submit(catalog_owner(request), value))
+
+    @app.get("/v2/catalog/contributions", response_model=ContributionPage)
+    async def own_contributions(request: Request, offset: int = Query(default=0, ge=0, le=10000)):
+        return await catalog_operation(catalog.own(catalog_owner(request), offset))
+
+    @app.get("/v2/catalog/moderation", response_model=ContributionPage)
+    async def moderation(request: Request, offset: int = Query(default=0, ge=0, le=10000)):
+        return await catalog_operation(catalog.pending(catalog_owner(request, moderate=True), offset))
+
+    @app.post("/v2/catalog/moderation/{contribution_id}", response_model=Contribution)
+    async def review_contribution(contribution_id: str, value: ReviewInput, request: Request):
+        from uuid import UUID
+        owner_scope = catalog_owner(request, moderate=True)
+        try:
+            if str(UUID(contribution_id)) != contribution_id: raise ValueError()
+        except ValueError:
+            raise HTTPException(422, "Identificador inválido.") from None
+        return await catalog_operation(catalog.review(owner_scope, contribution_id, value))
 
     return app
 

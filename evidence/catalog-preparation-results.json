@@ -1,0 +1,251 @@
+{
+  "checked_at_utc": "2026-10-08T03:06:00.500179+00:00",
+  "passed": true,
+  "checks": [
+    {
+      "check": "backend-v2-tests",
+      "checked_at_utc": "2026-10-08T03:01:57.847305+00:00",
+      "finished_at_utc": "2026-10-08T03:01:58.434561+00:00",
+      "exit_code": 0,
+      "evidence": "evidence/catalog-backend-v2-tests.txt",
+      "sha256": "a0dd40a75ff03547ef1bc3917de39b45edbb75f03d1d0171f8ff7b4ba05013dc"
+    },
+    {
+      "check": "backend-pilot-tests",
+      "checked_at_utc": "2026-10-08T03:01:58.434649+00:00",
+      "finished_at_utc": "2026-10-08T03:01:58.947328+00:00",
+      "exit_code": 0,
+      "evidence": "evidence/catalog-backend-pilot-tests.txt",
+      "sha256": "09e64026d128dca585e4bc5c878f02cb48c0d3e11a6c85b216dcb3a1dd928341"
+    },
+    {
+      "check": "backend-history-tests",
+      "checked_at_utc": "2026-10-08T03:01:58.947389+00:00",
+      "finished_at_utc": "2026-10-08T03:01:59.352095+00:00",
+      "exit_code": 0,
+      "evidence": "evidence/catalog-backend-history-tests.txt",
+      "sha256": "43927dc2d1bf51460dcb3e2041cf1de691b5ac4984cf0859826317927dd2a838"
+    },
+    {
+      "check": "backend-catalog-tests",
+      "checked_at_utc": "2026-10-08T03:01:59.352154+00:00",
+      "finished_at_utc": "2026-10-08T03:01:59.910578+00:00",
+      "exit_code": 0,
+      "evidence": "evidence/catalog-backend-catalog-tests.txt",
+      "sha256": "ee4c0fe75fd712a580c917658433a6ee07195f4b1fecbb6409177df9691c59ea"
+    },
+    {
+      "check": "backend-compile",
+      "checked_at_utc": "2026-10-08T03:01:59.910641+00:00",
+      "finished_at_utc": "2026-10-08T03:01:59.958490+00:00",
+      "exit_code": 0,
+      "evidence": "evidence/catalog-backend-compile.txt",
+      "sha256": "7ef55cc81d6e1df65f2c4740cf6f1b6feca6643bce1cc218657c291eab6f3129"
+    },
+    {
+      "check": "catalog-postgres-sql",
+      "checked_at_utc": "2026-10-08T03:01:59.958548+00:00",
+      "finished_at_utc": "2026-10-08T03:02:01.583896+00:00",
+      "exit_code": 0,
+      "evidence": "evidence/catalog-catalog-postgres-sql.txt",
+      "sha256": "413d7d33159132afd9634810c418443255654dab201cc019659789f433a8fd40"
+    },
+    {
+      "check": "postgres-sql",
+      "checked_at_utc": "2026-10-08T03:02:01.583965+00:00",
+      "finished_at_utc": "2026-10-08T03:02:02.872540+00:00",
+      "exit_code": 0,
+      "evidence": "evidence/catalog-postgres-sql.txt",
+      "sha256": "0e07151e8b94a37312ee99081be5ae2ad9ae7bb83ac6c58665b1111f4a16d0e9"
+    },
+    {
+      "check": "contract-types",
+      "checked_at_utc": "2026-10-08T03:02:02.873746+00:00",
+      "finished_at_utc": "2026-10-08T03:02:03.524741+00:00",
+      "exit_code": 0,
+      "evidence": "evidence/catalog-contract-types.txt",
+      "sha256": "f4772c9537d6b7a2f1607d8dda594defbd71bcbf4dd326f23e6951d43a0d76bc"
+    },
+    {
+      "check": "contract-export",
+      "checked_at_utc": "2026-10-08T03:02:03.524800+00:00",
+      "finished_at_utc": "2026-10-08T03:02:03.878940+00:00",
+      "exit_code": 0,
+      "evidence": "evidence/catalog-contract-export.txt",
+      "sha256": "8ef891f2579aab70614555f8fbed81315eace13d1a84dd4e0969890f47274c8b"
+    },
+    {
+      "check": "api-contract",
+      "checked_at_utc": "2026-10-08T03:02:03.879397+00:00",
+      "finished_at_utc": "2026-10-08T03:02:04.008087+00:00",
+      "exit_code": 0,
+      "evidence": "evidence/catalog-api-contract.txt",
+      "sha256": "40b5860a938ab7c9f52f91bc3fa9dcd0ec0847e90fc4c48de9df2e68443b600f"
+    },
+    {
+      "check": "tests",
+      "checked_at_utc": "2026-10-08T03:03:36.776122+00:00",
+      "finished_at_utc": "2026-10-08T03:03:37.904829+00:00",
+      "node": "v24.21.0",
+      "exit_code": 0,
+      "evidence": "evidence/catalog-node24-tests.txt",
+      "sha256": "9fa40afe2f4d273cfe93ef4c757d8c80d96af8af4d1c75c253895abb7842b4fa"
+    },
+    {
+      "check": "lint",
+      "checked_at_utc": "2026-10-08T03:03:38.132844+00:00",
+      "finished_at_utc": "2026-10-08T03:03:39.616070+00:00",
+      "node": "v24.21.0",
+      "exit_code": 0,
+      "evidence": "evidence/catalog-node24-lint.txt",
+      "sha256": "47cee36782a2b4d44edd34a51bc5c1e99860800eaa27f9a84a10d635877d3f89"
+    },
+    {
+      "check": "typecheck",
+      "checked_at_utc": "2026-10-08T03:04:49.474804+00:00",
+      "finished_at_utc": "2026-10-08T03:04:51.490611+00:00",
+      "node": "v24.21.0",
+      "exit_code": 0,
+      "evidence": "evidence/catalog-node24-typecheck.txt",
+      "sha256": "45e4033160f1e23e60b4527ddd0b591c85bfd12afffd8d26e1f3173f23be916e"
+    },
+    {
+      "check": "build",
+      "checked_at_utc": "2026-10-08T03:03:35.522256+00:00",
+      "finished_at_utc": "2026-10-08T03:03:47.985568+00:00",
+      "node": "v24.21.0",
+      "exit_code": 0,
+      "evidence": "evidence/catalog-node24-build.txt",
+      "sha256": "957430e1ad32cbca00d85e013c133e87f4de748e256508b8a8c64cdcea1d0947"
+    },
+    {
+      "check": "export-check",
+      "checked_at_utc": "2026-10-08T03:04:49.474800+00:00",
+      "finished_at_utc": "2026-10-08T03:04:49.798988+00:00",
+      "node": "v24.21.0",
+      "exit_code": 0,
+      "evidence": "evidence/catalog-node24-export-check.txt",
+      "sha256": "7ed140a731462f516626fb5acf2b86a7cab33f014017fbe5e34ce7fdd389fd6b"
+    },
+    {
+      "check": "ui-build",
+      "checked_at_utc": "2026-10-08T03:00:41.988690+00:00",
+      "finished_at_utc": "2026-10-08T03:00:53.106182+00:00",
+      "node": "v24.21.0",
+      "exit_code": 0,
+      "evidence": "evidence/catalog-node24-ui-build.txt",
+      "sha256": "6549018fd071de03094d31bdf2d239c9a372738f710e6d2949c51ed8504de04c"
+    },
+    {
+      "check": "catalog-browser-qa",
+      "checked_at_utc": "2026-10-08T03:02:10.063Z",
+      "exit_code": 0,
+      "evidence": "evidence/catalog-browser-qa/result.json",
+      "browser_checks": 11,
+      "sha256": "f58b06d0be43f8f0f8a8195603d8ed3239eb10eea67389129fe1bffb93031b36"
+    },
+    {
+      "check": "catalog-google-browser-regression",
+      "checked_at_utc": "2026-10-08T03:02:17.544Z",
+      "exit_code": 0,
+      "evidence": "evidence/catalog-google-browser-regression/result.json",
+      "browser_checks": 11,
+      "sha256": "fb9fda20a538a7e52ca2cf3c911f7fab1b23065f7f8bf3abbb47cab0303e3ad9"
+    }
+  ],
+  "counts": {
+    "frontend_unit_sdk": 65,
+    "backend": 107,
+    "api_contract": 7,
+    "postgres_checks": 29,
+    "browser_checks": 22,
+    "browser_screenshots": 8
+  },
+  "source_sha256": {
+    "averon-tools-worktree/REVIEWED_CATALOG.md": "efa56aa55d13c06653edbd0ebb7bab53597a4b5106764b9a3ecd7c65b0306ef3",
+    "averon-tools-worktree/scripts/check-pilot-config.mjs": "0f8a57ce2e386be1ecb3a10b1b75704814b07ac769bb49988fb0a38cf6dbad1e",
+    "averon-tools-worktree/scripts/check-static-export.mjs": "edc0088c33e87fbef26c43a4d2a441b8ea19bbbc1eadb25d22afe43d22552e3f",
+    "averon-tools-worktree/scripts/test-api-contract.mjs": "40dcb7463b1d54250d56efb6ec3f0b399abb6b19c1f2a08f04630b200a4f5f97",
+    "averon-tools-worktree/scripts/test-catalog-browser.mjs": "e0b01f31a335fe269b89df901cb2cfb24e234b006626837d075ccc7312b132c9",
+    "averon-tools-worktree/scripts/test-catalog-sql.mjs": "5ffe5073293bef27c5a76e75d5aff3561c6cab1a21089b8b19d3a702fb5e17f5",
+    "averon-tools-worktree/scripts/test-google-browser.mjs": "ca22ce1a3c92cbd954cdd5f33663065bc4b59cfb304e0fbd26baefc3cec213b2",
+    "averon-tools-worktree/scripts/test-pilot-sql.mjs": "4100eaacb58210a5bdcd976cfe98439ea3e85a6549d93189e998dd2d0b582c1b",
+    "averon-tools-worktree/scripts/test-research.mjs": "b9d725ae1f290b09aefc8f26b0fd153b8f5374c6b1f7ecdfb76c0939c45d4064",
+    "averon-tools-worktree/src/app/scanner-salesforce/page.tsx": "1c560ba33280a5144e24e83ca0552474cf0612a01fec3390334af8deaadfe7fa",
+    "averon-tools-worktree/src/app/scanner-salesforce/pesquisa/page.tsx": "39d5a70c815c7b9c4ad0fce2f7e4caca35834af02927162cdc4edcdc1b306aec",
+    "averon-tools-worktree/src/components/CatalogContributionForm.tsx": "6a2f87f91030b11b3b356fc218792907d4d9e472fb0f6755ba1a594295b47141",
+    "averon-tools-worktree/src/components/ResearchHistory.tsx": "71ef162c22ebe0064aaae7cf7394bb023221b17fd09429a009c984565c3d6d10",
+    "averon-tools-worktree/src/components/ResearchOAuthCallback.tsx": "82aa688576c84a6ba312afaf086299514e45a38374918ed01f828354d5246336",
+    "averon-tools-worktree/src/components/ResearchResults.tsx": "6cfbb49276f92be98c396330dbfe63e18fc6b27398be45269f1e4c29a401c84e",
+    "averon-tools-worktree/src/components/ResearchSignIn.tsx": "bcc885ee528ce679c2c8c40d93f848308f443f6a9b4c59d08bec3a0152d305bf",
+    "averon-tools-worktree/src/components/ResearchWorkspace.tsx": "c162fc6f14b81ecffe4d338dd6970fafde1d9f776272f482f9b4bbfe5bf97737",
+    "averon-tools-worktree/src/components/ScannerCatalog.tsx": "cd6f27d38707f0532104c6f74cf9be71a5863818f08d033c51b1997930bfb2eb",
+    "averon-tools-worktree/src/lib/research/catalog.ts": "852472bacd595babb68171ef69f469f817b54ba9b8fa86fece4e87ea9b9b6718",
+    "averon-tools-worktree/src/lib/research/client.ts": "d8a97babee5e824841ba45ae960e0e1b699bf276289a9c99a386cbca2b076d44",
+    "averon-tools-worktree/src/lib/research/contract.ts": "50c414220a613cf58a19dd128ad8121c131fb0b869a8a3b36f28e2fccadeb34a",
+    "averon-tools-worktree/src/lib/research/evidence.ts": "af9b0abbda511f7e9a9ea64f79c831d19e1f92cee48f7a6bf6465366d851fbeb",
+    "averon-tools-worktree/src/lib/research/inputs.ts": "0c9e7724b75bf1f99cc43a0e2cdddea1f769f0808f6f2135480d4229c8807fe3",
+    "averon-tools-worktree/src/lib/research/oauth-browser.ts": "7bff5f267dcffa995ac49f276b775ad81f020c972e4a2340c8e0e6dd37c16cff",
+    "averon-tools-worktree/src/lib/research/providers.ts": "707689f9365b0a831eedf1eec1ea37ff0110442b9d9bba3c5867adc4af587977",
+    "averon-tools-worktree/src/lib/research/supabase-runtime.ts": "6f7bddc7a5e2afa08c194bb75b77524205ef43a5fa2914690f20a99471d5df9c",
+    "averon-tools-worktree/src/lib/research/supabase-session.ts": "0b077151cd315f515d88ee934e329a623895b9d064c95f60dca787e0366d61ee",
+    "averon-tools-worktree/tests/api-contract.test.cjs": "af712d9ffcbe21e27fec1637a7b1b81918e418040758827015205f408a470315",
+    "averon-tools-worktree/tests/catalog.test.cjs": "3ca1a10460b4d36652a97669d2803829e6fc9b53fb4272322532658f28e0c767",
+    "averon-tools-worktree/tests/google-history.test.cjs": "489b830a3c64a6ab45fcef90b82100d8b32e399e321eada6da8a90a0f389789f",
+    "averon-tools-worktree/tests/private-client.test.cjs": "eb91edf1fad0f5076b0dc7ef7b5bb411386f16e72a0dfd144febd68ba59832a7",
+    "averon-tools-worktree/tests/research.test.cjs": "1c96b68093ef0d90643f8eeb4fb4661957ec8fe8b7b632929083dfb0607db1f9",
+    "averon-tools-worktree/tests/supabase-session.test.cjs": "40f426d98a77eecfb4ec005d66edc54681d70170c87aa793ef3ddd17027f5b81",
+    "scanner-research-worktree/docs/REVIEWED_CATALOG_SETUP.md": "304b4fafe8621cbed3dae9cc5b981e2581512eb7e8a1ce397bed54e5cd051d0f",
+    "scanner-research-worktree/research_api.py": "e8bea77e14722daad5f4088026e9dd5fbc3c37f7fe24fb081892f74d7b311dfd",
+    "scanner-research-worktree/research_pilot.py": "5807a3b6e9d278a67a8827d95d47c6153af46193c0f29b592b8645f25d786abd",
+    "scanner-research-worktree/research_v2/__init__.py": "94ab3d9898d33839f5c4c7df8dc11f95714b8060feca4d91cb0f09e29187dd3c",
+    "scanner-research-worktree/research_v2/catalog.py": "a2493f0257f9bdc8dfd55ba236ac0f1e445b5e3e89ff8a6c7748a3f840869c97",
+    "scanner-research-worktree/research_v2/classification.py": "59759053a2d161852c9edc4f9250cd370f323babae4dd5bd945cd91d9569f484",
+    "scanner-research-worktree/research_v2/history.py": "c27098c0ccb9ff0455932a4b75afa8d467d2a0879c49b319b3fcaaf4c663dbae",
+    "scanner-research-worktree/research_v2/models.py": "d962d6326b625cd47276b3bb389eeafbc4e7eff6af0574f75c706cb5748dde1e",
+    "scanner-research-worktree/research_v2/providers.py": "89e4e20291166a191191f9fa7d4467fd7041e75a4a811e51173470deacbfac52",
+    "scanner-research-worktree/research_v2/resolution.py": "c4f3496e565ce551929bbcf8edf3389087a08397016ae4a0d87b0248ab5ec5ce",
+    "scanner-research-worktree/research_v2/service.py": "d9826ee3edc17c4e855111f6ffa8cfe7f1ef2b4acb7813bbd6f076349b940718",
+    "scanner-research-worktree/research_v2/supabase.py": "16d61d40fc70e464599480e1d1c2360e6d276d40dba85b3109eb649183cf739f",
+    "scanner-research-worktree/research_v2/transport.py": "4beefe4a659b46432a278bc48e7156039825b783e0479a4db0140d12de39ae2e",
+    "scanner-research-worktree/sql/averon_private_pilot.sql": "eeb97f57e8987d11f9ef479f51dbca9119d73091a9d593dfc0bc6d67bb2050dd",
+    "scanner-research-worktree/sql/averon_reviewed_catalog.sql": "4b6798e4bf5f3a81f2a41d876e1868afca859bbf9dfab9e6438be13da0b84ef0",
+    "scanner-research-worktree/tests/export_frontend_contract.py": "2f823a13beff2890a9a282200aed6092edbd12f73e06af21583ebcf6a71491bc",
+    "scanner-research-worktree/tests/test_private_history.py": "ee6128bcb70a630f7734ea70a9afd904fa98877b7624af214935ffba13b2d8f3",
+    "scanner-research-worktree/tests/test_reviewed_catalog.py": "1e05392c98023af916962aace54538b248d537ce7da9297019f3c1f1b82e5380",
+    "scanner-research-worktree/tests/test_supabase_pilot.py": "5c50af0bb0cc536215a48d227a2d204a15c862f24e8d2b8e0514e6af8d1e6e38"
+  },
+  "screenshots_sha256": {
+    "evidence/catalog-browser-qa/own-pending-contribution-mobile.png": "b81a1b29feb24484102834269f4222cef037ca4de917c81a641d69737f4a3f50",
+    "evidence/catalog-browser-qa/anonymous-catalog-mobile.png": "db49e204890a4843a5798c9427b44320cdaa638f1c0f9c540007f2ead03fbb2c",
+    "evidence/catalog-browser-qa/approved-catalog-mobile.png": "14b655dc8052437a925d6d239e9d5eabdfe90ff7a5918fb212119ebf666ae755",
+    "evidence/catalog-browser-qa/moderator-review-mobile.png": "665d16fbe4be0c693708e865896925e8c53f7a44d791b6784d7bd5fb8b15cbd1",
+    "evidence/catalog-google-browser-regression/google-signin-mobile.png": "dc841892c02fab94655bfb868ec78ae553be376200773b582d4bc3a3428fe796",
+    "evidence/catalog-google-browser-regression/private-history-user-one-mobile.png": "5b28943754f61cf172358c851a92ab2e648070740208070a3560baa67d857690",
+    "evidence/catalog-google-browser-regression/google-cancelled-callback-mobile.png": "4530279e50f29a946ebcdde218a6f6fbf919dbbe0bf93abef4a2403037823659",
+    "evidence/catalog-google-browser-regression/private-history-user-two-mobile.png": "887087d387e403604876307a5a8ff5c68cc6465fd6d92bdbcd897c7b127a167b"
+  },
+  "supabase_project": {
+    "id": "ytqhclqdulkuwnuqtxyk",
+    "name": "AveronTools",
+    "organization": "rxreodfgqwfnknokmuca",
+    "status": "ACTIVE_HEALTHY",
+    "plan_shown": "FREE",
+    "created_by_this_executor": false
+  },
+  "default_build_pilot_enabled": false,
+  "public_config_supplied_but_not_applied": true,
+  "real_google_supabase_validated": false,
+  "private_credentials_read_or_created": false,
+  "remote_grants_configured": false,
+  "sql_applied_remotely": false,
+  "real_companies_published": false,
+  "supplier_credits_consumed": false,
+  "git_integration_connected": false,
+  "pushed_merged_deployed": false,
+  "other_projects_mutated": false,
+  "production_url_preserved": "https://averon-tools.vercel.app",
+  "published_source_commit_preserved": "d738134f13670515126e663bad6ec6a095b619db",
+  "google_checkpoint_frontend": "74dbdf7c47a5ecafb81fb56f08287f51b274a6fb",
+  "google_checkpoint_backend": "edad16e565861f7671951d47ab257edb5f64408e"
+}

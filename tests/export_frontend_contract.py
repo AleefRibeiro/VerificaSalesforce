@@ -12,6 +12,7 @@ from research_v2.models import ProviderOutcome, Report
 from research_v2.history import HistoryPage, HistoryEntry
 from research_v2.providers import ProviderPolicy
 from research_v2.service import ResearchService, ResearchScope
+from research_v2.catalog import MemoryCatalogStore
 
 
 def export_contract():
@@ -68,7 +69,27 @@ def export_contract():
         history = receipt(client.get("/v2/history", headers=headers))
         history_report = receipt(client.get("/v2/history/" + historic.id, headers=headers))
         assert collector.calls == count_before
-    return {"test_only": True, "network_calls": 0, "access": access, "single": single, "batch": batch, "history": history, "history_report": history_report}
+    class GoogleContractVerifier:
+        async def verify(self, value):
+            if value != "offline-contract-test-session": return None
+            return Principal("00000000-0000-4000-8000-000000000001", "offline-workspace",
+                frozenset({"research:read","research:write","catalog:moderate"}),now+timedelta(hours=1),"google")
+    catalog = MemoryCatalogStore("offline-workspace","00000000-0000-4000-8000-000000000001")
+    with TestClient(create_app(verifier=GoogleContractVerifier(),catalog=catalog,require_google=True)) as client:
+        contribution = client.post("/v2/catalog/contributions",headers=headers,json={"domain":"catalog-contract-fixture.example",
+            "company_name":"Fictitious offline contract fixture","action":"confirmar","reason":"Offline fixture reason; never a real company claim.",
+            "source_url":"https://source-contract-fixture.example/evidence","published_at":None})
+        assert contribution.status_code==201
+        pending=contribution.json()
+        moderated=receipt(client.post("/v2/catalog/moderation/"+pending["id"],headers=headers,json={"decision":"aprovar",
+            "qualification":"Fictitious editorial qualification for contract testing only.","status":"Indício","direct_evidence":False}))
+        catalog_page=receipt(client.get("/catalog/companies"))
+        company=receipt(client.get("/catalog/companies/catalog-contract-fixture.example"))
+        contributions=receipt(client.get("/v2/catalog/contributions",headers=headers))
+        catalog_access=receipt(client.get("/v2/catalog/access",headers=headers))
+    return {"test_only": True, "network_calls": 0, "access": access, "single": single, "batch": batch,
+        "history": history, "history_report": history_report,"catalog":catalog_page,"company":company,
+        "pending_contribution":pending,"moderated_contribution":moderated,"contributions":contributions,"catalog_access":catalog_access}
 
 
 if __name__ == "__main__":
