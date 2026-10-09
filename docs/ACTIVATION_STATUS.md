@@ -1,5 +1,22 @@
 # Ativação AveronTools — 8 de outubro de 2026
 
+**Retomada às 23:49 UTC de 8/10, verificação às 00:27 UTC de 9/10:** Alef
+autorizou retomar a aplicação SQL. A nova chamada MCP não devolveu confirmação e
+foi interrompida. As leituras finais ainda mostram zero migrations e zero
+tabelas em `averon_private`. A alternativa no SQL Editor não confirmou inserção;
+nenhuma query foi executada. O processo próprio de teclado foi encerrado, sem
+gravação pendente. A autorização SQL já está registrada; falta concluir sua
+execução por um caminho autorizado disponível.
+
+Foi preparado fora do Git `artifacts/averon-approved-atomic-migrations.sql`,
+transação que executa os dois arquivos revisados e registra suas versões e SQL
+originais juntos, usando o formato da CLI oficial 2.120.0. Quatro checks adicionais
+passaram no PGlite: versões corretas, conteúdo íntegro, sete tabelas/doze RPCs e
+recusa de reaplicação. Esse arquivo de recuperação não foi executado no banco e
+não deve ser passado a `apply_migration`, que gerencia o próprio histórico; pelo
+MCP/CLI normal, utilizar os dois arquivos originais. O estado da retomada está em
+`../artifacts/averon-resume-results.json`, a partir da raiz do checkout.
+
 Alef autorizou as quatro etapas: Google OAuth, banco/grants/associações,
 configuração e validação do Railway, e integração Supabase–GitHub.
 
