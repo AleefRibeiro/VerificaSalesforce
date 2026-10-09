@@ -1,5 +1,21 @@
 # Ativação AveronTools — 8 de outubro de 2026
 
+**Nova tentativa MCP normal, conferida às 04:14 UTC de 9/10:** repetida somente
+a migration base original após confirmar novamente o banco vazio. A chamada
+não devolveu sucesso nem negativa explícita; a espera foi interrompida e sua
+célula não existe mais. Leituras posteriores continuam com zero migrations e
+zero tabelas Averon; a inspeção final não encontrou transações cliente abertas
+no banco. O servidor MCP público respondeu o 401 esperado sem token e as
+leituras pelo conector funcionam. A causa da ausência de resposta na escrita
+continua inconclusiva; não foi apresentada rejeição de aprovação automática.
+
+A verificação limitada do controle normal de interface no Mac retornou erro
+`AppleEvent timeout (-1712)` no System Events. Nenhuma query foi executada pelo
+editor e nenhum grant de automação foi concedido. O diagnóstico fica fora do
+Git em `../artifacts/averon-mcp-ui-diagnostic.json`, a partir da raiz do checkout.
+Não há nova autorização SQL a solicitar: falta uma execução que conclua e possa
+ser verificada. Os gates GCP, e-mails e chave privada segura continuam pendentes.
+
 **Retomada às 23:49 UTC de 8/10, verificação às 00:27 UTC de 9/10:** Alef
 autorizou retomar a aplicação SQL. A nova chamada MCP não devolveu confirmação e
 foi interrompida. As leituras finais ainda mostram zero migrations e zero
